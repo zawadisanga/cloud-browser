@@ -23,15 +23,19 @@ let db;
 
 async function initDatabase() {
     // Create database directory if not exists
-    const fs = require('fs');
-    if (!fs.existsSync('./database')) {
-        fs.mkdirSync('./database');
-    }
-    
-    db = await open({
-        filename: './database/database.sqlite',
-        driver: sqlite3.Database
-    });
+    // Badilisha hii kwenye server.js:
+const fs = require('fs');
+const dbPath = process.env.DATABASE_URL || './database/database.sqlite';
+
+// Create database directory if not exists (Heroku ina filesystem inayoandikika)
+if (!fs.existsSync('./database')) {
+    fs.mkdirSync('./database', { recursive: true });
+}
+
+db = await open({
+    filename: dbPath,
+    driver: sqlite3.Database
+});
     
     // Users table
     await db.exec(`
