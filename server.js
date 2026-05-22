@@ -608,3 +608,43 @@ startServer().catch(err => {
     console.error('Fatal error:', err);
     process.exit(1);
 });
+
+
+
+
+
+// Fanya hivi badala ya kuweka URL moja kwa moja kwenye <img src="...">
+async function capture() {
+  const url = document.getElementById('singleUrl').value;
+  const format = document.getElementById('format').value;
+  const resultDiv = document.getElementById('singleResult');
+
+  resultDiv.innerHTML = '<div class="loader"></div><p>Rendering...</p>';
+
+  try {
+    const endpoint = format === 'pdf' ? '/api/pdf' : '/api/screenshot';
+    const res = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`, {
+      headers: { 'X-API-Key': userData.user.api_key }
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Server error ${res.status}: ${errorText.substring(0, 100)}`);
+    }
+
+    const contentType = res.headers.get('content-type');
+    if (contentType === 'image/png') {
+      const blob = await res.blob();
+      const imgUrl = URL.createObjectURL(blob);
+      resultDiv.innerHTML = `<img src="${imgUrl}" alt="Screenshot">`;
+    } else if (contentType === 'application/pdf') {
+      const blob = await res.blob();
+      const pdfUrl = URL.createObjectURL(blob);
+      resultDiv.innerHTML = `<iframe src="${pdfUrl}" width="100%" height="600px"></iframe>`;
+    } else {
+      throw new Error('Unexpected response format from server');
+    }
+  } catch (error) {
+    resultDiv.innerHTML = `<p style="color:#f44336;">❌ Error: ${error.message}</p>`;
+  }
+}
