@@ -119,6 +119,13 @@
             border-radius: 10px;
             margin-top: 20px;
         }
+        .success-message {
+            background: rgba(76,175,80,0.2);
+            color: #4caf50;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -190,7 +197,7 @@
             }
         }
         
-        // HII NDIO CAPTURE FUNCTION SAHIHI - INATUMIA FETCH NA API KEY
+        // HII NDIO CAPTURE FUNCTION SAHIHI - IMEREXEBISHWA KUSOMA STREAM MARA MOJA
         async function capture() {
             const url = document.getElementById('singleUrl').value;
             const format = document.getElementById('format').value;
@@ -217,31 +224,37 @@
                 });
                 
                 if (!response.ok) {
+                    // KUSOMA ERROR MESSAGE TU MARA MOJA
                     let errorMessage = `Server error: ${response.status}`;
                     try {
                         const errorData = await response.json();
                         errorMessage = errorData.error || errorMessage;
                     } catch (e) {
-                        const text = await response.text();
-                        if (text.includes('<')) {
-                            errorMessage = 'API key invalid or missing. Please logout and login again.';
-                        } else {
-                            errorMessage = text.substring(0, 100);
+                        // Ikiwa si JSON, jaribu kusoma kama text
+                        try {
+                            const textError = await response.text();
+                            if (textError && textError.length < 200) {
+                                errorMessage = textError;
+                            }
+                        } catch (textErr) {
+                            // Ignore - tumia errorMessage default
                         }
                     }
                     throw new Error(errorMessage);
                 }
                 
-                const contentType = response.headers.get('content-type');
+                const contentType = response.headers.get('content-type') || '';
                 
-                if (format === 'pdf' || contentType === 'application/pdf') {
+                if (format === 'pdf' || contentType.includes('application/pdf')) {
                     const blob = await response.blob();
                     const pdfUrl = URL.createObjectURL(blob);
                     resultDiv.innerHTML = `<iframe src="${pdfUrl}" width="100%" height="600px" style="border:none; border-radius:10px;"></iframe>`;
-                } else {
+                } else if (contentType.includes('image/png') || contentType.includes('image/jpeg')) {
                     const blob = await response.blob();
                     const imgUrl = URL.createObjectURL(blob);
                     resultDiv.innerHTML = `<img src="${imgUrl}" alt="Screenshot of ${url}">`;
+                } else {
+                    throw new Error(`Unexpected content type: ${contentType}`);
                 }
                 
                 // Update stats after successful capture
