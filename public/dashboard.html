@@ -73,6 +73,7 @@
             background: rgba(0,0,0,0.3);
             color: white;
             border-radius: 10px;
+            font-size: 16px;
         }
         button {
             padding: 15px 30px;
@@ -81,6 +82,11 @@
             border: none;
             border-radius: 10px;
             cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            transform: translateY(-2px);
         }
         .api-key-box {
             background: rgba(0,0,0,0.5);
@@ -106,6 +112,13 @@
         }
         img { max-width: 100%; border-radius: 10px; margin-top: 20px; }
         .result-area { margin-top: 20px; text-align: center; }
+        .error-message {
+            background: rgba(244,67,54,0.2);
+            color: #f44336;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -156,6 +169,11 @@
                 const res = await fetch('/api/user', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                
+                if (!res.ok) {
+                    throw new Error('Failed to load user info');
+                }
+                
                 const data = await res.json();
                 userData = data;
                 
@@ -167,49 +185,71 @@
                 document.getElementById('apiKeyDisplay').innerHTML = `<strong>🔑 Your API Key:</strong> ${data.user.api_key}<br><small>Use this key in X-API-Key header for API requests</small>`;
             } catch (error) {
                 console.error('Failed to load user info:', error);
-                if (error.status === 401) {
-                    localStorage.removeItem('token');
-                    window.location.href = '/login.html';
-                }
+                localStorage.removeItem('token');
+                window.location.href = '/login.html';
             }
         }
         
+        // HII NDIO CAPTURE FUNCTION SAHIHI - INATUMIA FETCH NA API KEY
         async function capture() {
             const url = document.getElementById('singleUrl').value;
             const format = document.getElementById('format').value;
             const resultDiv = document.getElementById('singleResult');
             
             if (!userData) {
-                resultDiv.innerHTML = '<p style="color:#f44336;">Loading user data...</p>';
+                resultDiv.innerHTML = '<div class="error-message">Loading user data. Please wait...</div>';
                 return;
             }
             
-            resultDiv.innerHTML = '<div class="loader"></div><p>Rendering...</p>';
+            if (!url) {
+                resultDiv.innerHTML = '<div class="error-message">❌ Please enter a URL</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loader"></div><p>Rendering page...</p>';
             
             try {
                 const endpoint = format === 'pdf' ? '/api/pdf' : '/api/screenshot';
-                const res = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`, {
-                    headers: { 'X-API-Key': userData.user.api_key }
+                const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}&fullPage=true`, {
+                    headers: { 
+                        'X-API-Key': userData.user.api_key 
+                    }
                 });
                 
-                if (!res.ok) {
-                    const error = await res.json();
-                    throw new Error(error.error || 'Failed to capture');
+                if (!response.ok) {
+                    let errorMessage = `Server error: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) {
+                        const text = await response.text();
+                        if (text.includes('<')) {
+                            errorMessage = 'API key invalid or missing. Please logout and login again.';
+                        } else {
+                            errorMessage = text.substring(0, 100);
+                        }
+                    }
+                    throw new Error(errorMessage);
                 }
                 
-                if (format === 'pdf') {
-                    const blob = await res.blob();
+                const contentType = response.headers.get('content-type');
+                
+                if (format === 'pdf' || contentType === 'application/pdf') {
+                    const blob = await response.blob();
                     const pdfUrl = URL.createObjectURL(blob);
-                    resultDiv.innerHTML = `<iframe src="${pdfUrl}" width="100%" height="600px"></iframe>`;
+                    resultDiv.innerHTML = `<iframe src="${pdfUrl}" width="100%" height="600px" style="border:none; border-radius:10px;"></iframe>`;
                 } else {
-                    const blob = await res.blob();
+                    const blob = await response.blob();
                     const imgUrl = URL.createObjectURL(blob);
-                    resultDiv.innerHTML = `<img src="${imgUrl}" alt="Screenshot">`;
+                    resultDiv.innerHTML = `<img src="${imgUrl}" alt="Screenshot of ${url}">`;
                 }
                 
+                // Update stats after successful capture
                 loadUserInfo();
+                
             } catch (error) {
-                resultDiv.innerHTML = `<p style="color:#f44336;">❌ Error: ${error.message}</p>`;
+                console.error('Capture error:', error);
+                resultDiv.innerHTML = `<div class="error-message">❌ Error: ${error.message}</div>`;
             }
         }
         
@@ -218,6 +258,11 @@
             localStorage.removeItem('user');
             window.location.href = '/login.html';
         }
+        
+        // Allow Enter key to trigger capture
+        document.getElementById('singleUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') capture();
+        });
         
         loadUserInfo();
     </script>
