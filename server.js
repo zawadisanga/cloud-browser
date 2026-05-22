@@ -180,6 +180,48 @@ async function takeScreenshot(url, options = {}) {
     }
 }
 
+
+
+
+
+
+async function initBrowser() {
+    console.log('🚀 Starting browser...');
+    try {
+        browser = await chromium.launch({
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-web-security',
+                '--memory-pressure-off'
+            ]
+        });
+        
+        // PRE-WARMUP: Fungua page na uifunge ili browser iwe tayari
+        console.log('Pre-warming browser...');
+        const page = await browser.newPage();
+        await page.goto('about:blank');
+        await page.close();
+        
+        isBrowserReady = true;
+        console.log('✅ Browser ready!');
+    } catch (error) {
+        console.error('Browser failed:', error);
+        setTimeout(initBrowser, 5000);
+    }
+}
+
+
+
+
+
+
+
+
+
 // ==================== AUTHENTICATION MIDDLEWARE ====================
 async function authenticateAPIKey(req, res, next) {
     const apiKey = req.headers['x-api-key'] || req.query.api_key;
