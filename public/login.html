@@ -105,7 +105,7 @@
         <button onclick="login()">Login</button>
         
         <div class="register-link">
-            Don't have an account? <a href="/register">Register here</a>
+            Don't have an account? <a href="/register.html">Register here</a>
         </div>
     </div>
     
@@ -129,7 +129,7 @@
                     localStorage.setItem('user', JSON.stringify(data.user));
                     messageDiv.innerHTML = '<div class="success">✅ Login successful! Redirecting...</div>';
                     setTimeout(() => {
-                        window.location.href = '/';
+                        window.location.href = '/dashboard.html';
                     }, 1000);
                 } else {
                     messageDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
@@ -139,7 +139,6 @@
             }
         }
         
-        // Enter key support
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') login();
         });
