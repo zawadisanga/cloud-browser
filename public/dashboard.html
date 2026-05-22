@@ -213,9 +213,58 @@ async function checkHealth() {
 }
 
 // Badilisha capture() function
-async function capture() {
+async function captureWithRetry(retries = 3) {
+    const url = document.getElementById('singleUrl').value;
+    const format = document.getElementById('format').value;
     const resultDiv = document.getElementById('singleResult');
     
+    if (!userData) {
+        resultDiv.innerHTML = '<div class="error-message">Loading user data...</div>';
+        return;
+    }
+    
+    resultDiv.innerHTML = '<div class="loader"></div><p>Starting browser, please wait...</p>';
+    
+    for (let i = 0; i < retries; i++) {
+        try {
+            const endpoint = format === 'pdf' ? '/api/pdf' : '/api/screenshot';
+            const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}&fullPage=true`, {
+                headers: { 'X-API-Key': userData.user.api_key }
+            });
+            
+            if (response.status === 503) {
+                // Browser bado inaanza - subiri na ujaribu tena
+                resultDiv.innerHTML = `<div class="loader"></div><p>Browser starting (attempt ${i + 1}/${retries})...</p>`;
+                await new Promise(resolve => setTimeout(resolve, 10000)); // Subiri sekunde 10
+                continue;
+            }
+            
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            
+            const contentType = response.headers.get('content-type') || '';
+            
+            if (format === 'pdf' || contentType.includes('application/pdf')) {
+                const blob = await response.blob();
+                const pdfUrl = URL.createObjectURL(blob);
+                resultDiv.innerHTML = `<iframe src="${pdfUrl}" width="100%" height="600px" style="border:none; border-radius:10px;"></iframe>`;
+            } else {
+                const blob = await response.blob();
+                const imgUrl = URL.createObjectURL(blob);
+                resultDiv.innerHTML = `<img src="${imgUrl}" alt="Screenshot of ${url}">`;
+            }
+            
+            loadUserInfo();
+            return; // Success - exit function
+            
+        } catch (error) {
+            if (i === retries - 1) {
+                resultDiv.innerHTML = `<div class="error-message">❌ Error: ${error.message}</div>`;
+            }
+        }
+    }
+}
     // Check health kwanza
     const health = await checkHealth();
     if (!health.ready) {
