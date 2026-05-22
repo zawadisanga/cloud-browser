@@ -207,7 +207,34 @@
             
             while (attempts < maxAttempts) {
                 try {
-                    const res = await fetch('/health');
+                    const res = await fetch
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        // Tafuta sehemu inayosema: const response = await fetch(...)
+// Na ongeza option ya signal au timeout kwenye fetch:
+
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 60000); // Sekunde 60
+
+const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}&fullPage=true`, {
+    headers: { 'X-API-Key': userData.user.api_key },
+    signal: controller.signal
+});
+
+clearTimeout(timeoutId);
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    ('/health');
                     const data = await res.json();
                     
                     if (data.status === 'ready' && data.browser === 'active') {
