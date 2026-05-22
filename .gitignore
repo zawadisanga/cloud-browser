@@ -1,7 +1,14 @@
+
+
+
+
 node_modules/
 .env
 .DS_Store
 *.log
+database/*.sqlite
+database/*.sqlite-journal
+logs/
 dist/
 build/
 *.pid
