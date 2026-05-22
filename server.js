@@ -1,4 +1,4 @@
-// server.js - Full Professional Version with Database (Heroku Ready)
+// server.js - Full Professional Version with Database & Single Browser (Heroku Optimized)
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'cloud-browser-super-secret-key-2024';
 const SALT_ROUNDS = 10;
 
-// ==================== CREATE DATABASE DIRECTORY (HEROKU FIX) ====================
+// ==================== CREATE DATABASE DIRECTORY ====================
 const dbDir = './database';
 if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
@@ -105,6 +105,81 @@ const globalLimiter = rateLimit({
 });
 app.use('/api/', globalLimiter);
 
+// ==================== SINGLE BROWSER MANAGER ====================
+let browser = null;
+let isBrowserReady = false;
+let browserStats = {
+    requests: 0,
+    cacheHits: 0,
+    errors: 0,
+    startTime: Date.now()
+};
+let screenshotCache = new Map();
+
+async function initBrowser() {
+    console.log('🚀 Starting browser...');
+    try {
+        browser = await chromium.launch({
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-web-security',
+                '--memory-pressure-off'
+            ]
+        });
+        isBrowserReady = true;
+        console.log('✅ Browser ready!');
+        
+        // Clear cache every hour
+        setInterval(() => {
+            screenshotCache.clear();
+            console.log('🧹 Cache cleared');
+        }, 3600000);
+    } catch (error) {
+        console.error('Browser failed:', error);
+        setTimeout(initBrowser, 5000);
+    }
+}
+
+async function takeScreenshot(url, options = {}) {
+    browserStats.requests++;
+    
+    const cacheKey = `${url}:${options.format || 'png'}`;
+    if (screenshotCache.has(cacheKey) && !options.skipCache) {
+        browserStats.cacheHits++;
+        return { data: screenshotCache.get(cacheKey), fromCache: true };
+    }
+    
+    if (!isBrowserReady || !browser) {
+        throw new Error('Browser is starting, please wait 30 seconds');
+    }
+    
+    let page = null;
+    try {
+        page = await browser.newPage();
+        await page.setViewportSize({ width: options.width || 1920, height: options.height || 1080 });
+        await page.goto(url, { waitUntil: 'networkidle', timeout: options.timeout || 30000 });
+        
+        let result;
+        if (options.format === 'pdf') {
+            result = await page.pdf({ format: options.paperFormat || 'A4', printBackground: true });
+        } else {
+            result = await page.screenshot({ fullPage: options.fullPage !== false, type: 'png' });
+        }
+        
+        // Store in cache for 1 hour
+        screenshotCache.set(cacheKey, result);
+        setTimeout(() => screenshotCache.delete(cacheKey), 3600000);
+        
+        return { data: result, fromCache: false };
+    } finally {
+        if (page) await page.close();
+    }
+}
+
 // ==================== AUTHENTICATION MIDDLEWARE ====================
 async function authenticateAPIKey(req, res, next) {
     const apiKey = req.headers['x-api-key'] || req.query.api_key;
@@ -127,7 +202,7 @@ async function authenticateAPIKey(req, res, next) {
         );
         
         if (todayUsage.count >= user.daily_limit) {
-            return res.status(429).json({ error: 'Daily limit exceeded' });
+            return res.status(429).json({ error: 'Daily limit exceeded. Upgrade your plan.' });
         }
         
         req.user = user;
@@ -158,78 +233,6 @@ async function authenticateJWT(req, res, next) {
     }
 }
 
-// ==================== BROWSER POOL MANAGER ====================
-// BrowserPool class - IMEPUNGUZWA MEMORY
-class BrowserPool {
-    constructor() {
-        this.available = [];
-        this.busy = new Set();
-        // PUNGUZA WORKERS KWA 1 KWANZA!
-        this.maxSize = parseInt(process.env.MAX_WORKERS) || 1;
-        this.stats = {
-            totalRequests: 0,
-            cacheHits: 0,
-            errors: 0,
-            startTime: Date.now()
-        };
-        this.cache = new Map();
-        this.initializing = true;
-    }
-
-    async init() {
-        console.log(`🚀 Initializing ${this.maxSize} browser workers...`);
-        
-        // Ongeza timeout ya initialization
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Browser initialization timeout')), 60000);
-        });
-        
-        const initPromise = (async () => {
-            for (let i = 0; i < this.maxSize; i++) {
-                try {
-                    console.log(`Starting browser ${i + 1}...`);
-                    this.available.push(await this.createBrowser());
-                    console.log(`✅ Browser ${i + 1} ready`);
-                } catch (error) {
-                    console.error(`Failed to create browser ${i + 1}:`, error);
-                    // Endelea hata kama browser moja imefail
-                }
-            }
-            this.initializing = false;
-        })();
-        
-        await Promise.race([initPromise, timeoutPromise]);
-        
-        if (this.available.length === 0) {
-            console.error('⚠️ WARNING: No browsers available!');
-        } else {
-            console.log(`✅ ${this.available.length} browsers ready`);
-        }
-        
-        setInterval(() => this.cleanCache(), 3600000);
-    }
-
-    async createBrowser() {
-        return await chromium.launch({
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--disable-web-security',
-                '--disable-features=VizDisplayCompositor',
-                '--disable-background-timer-throttling',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding',
-                '--memory-pressure-off',
-                '--max-old-space-size=256'  // Punguza memory per browser
-            ]
-        });
-    }
-    
-    // ... rest of methods remain the same
-}
 // ==================== LOG USAGE ====================
 async function logUsage(userId, apiKey, endpoint, url, format, success, responseTime) {
     try {
@@ -250,6 +253,10 @@ app.post('/api/register', async (req, res) => {
     
     if (!email || !password) {
         return res.status(400).json({ error: 'Email and password required' });
+    }
+    
+    if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
     
     try {
@@ -274,6 +281,7 @@ app.post('/api/register', async (req, res) => {
             daily_limit: 50
         });
     } catch (error) {
+        console.error('Registration error:', error);
         res.status(500).json({ error: 'Registration failed' });
     }
 });
@@ -309,6 +317,7 @@ app.post('/api/login', async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Login error:', error);
         res.status(500).json({ error: 'Login failed' });
     }
 });
@@ -340,24 +349,30 @@ app.get('/api/user', authenticateJWT, async (req, res) => {
             usage: {
                 today: todayUsage.count,
                 total: totalUsage.count,
-                remaining_today: req.user.daily_limit - todayUsage.count
+                remaining_today: Math.max(0, req.user.daily_limit - todayUsage.count)
             }
         });
     } catch (error) {
+        console.error('User info error:', error);
         res.status(500).json({ error: 'Failed to get user info' });
     }
 });
 
 // ==================== API ENDPOINTS ====================
 
-// Health check (public)
+// Health check
 app.get('/health', (req, res) => {
-    const stats = browserPool.getStats();
     res.json({
-        status: 'healthy',
+        status: isBrowserReady ? 'ready' : 'starting',
+        browser: browser ? 'active' : 'inactive',
         timestamp: new Date().toISOString(),
         version: '2.0.0',
-        ...stats
+        stats: {
+            requests: browserStats.requests,
+            cacheHits: browserStats.cacheHits,
+            cacheSize: screenshotCache.size,
+            uptime: Math.floor((Date.now() - browserStats.startTime) / 1000)
+        }
     });
 });
 
@@ -376,8 +391,12 @@ app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
         return res.status(400).json({ error: 'Invalid URL format' });
     }
     
+    if (!isBrowserReady) {
+        return res.status(503).json({ error: 'Browser is starting, please wait 30 seconds' });
+    }
+    
     try {
-        const result = await browserPool.capture(url, {
+        const result = await takeScreenshot(url, {
             format: 'png',
             fullPage: fullPage === 'true'
         });
@@ -387,6 +406,7 @@ app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
         
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('X-Cache', result.fromCache ? 'HIT' : 'MISS');
+        res.setHeader('X-Remaining', req.user.daily_limit - 1);
         res.send(result.data);
     } catch (error) {
         await logUsage(req.user.id, req.apiKey, '/screenshot', url, 'png', false, Date.now() - startTime);
@@ -403,8 +423,12 @@ app.get('/api/pdf', authenticateAPIKey, async (req, res) => {
         return res.status(400).json({ error: 'URL is required' });
     }
     
+    if (!isBrowserReady) {
+        return res.status(503).json({ error: 'Browser is starting, please wait 30 seconds' });
+    }
+    
     try {
-        const result = await browserPool.capture(url, { format: 'pdf' });
+        const result = await takeScreenshot(url, { format: 'pdf' });
         const responseTime = Date.now() - startTime;
         await logUsage(req.user.id, req.apiKey, '/pdf', url, 'pdf', true, responseTime);
         
@@ -420,20 +444,20 @@ app.get('/api/pdf', authenticateAPIKey, async (req, res) => {
 // Batch endpoint
 app.post('/api/batch', authenticateAPIKey, async (req, res) => {
     const startTime = Date.now();
-    const { urls, fullPage = true } = req.body;
+    const { urls } = req.body;
     
     if (!urls || !Array.isArray(urls)) {
         return res.status(400).json({ error: 'URLs array is required' });
     }
     
-    if (urls.length > 10) {
-        return res.status(400).json({ error: 'Maximum 10 URLs per batch' });
+    if (urls.length > 5) {
+        return res.status(400).json({ error: 'Maximum 5 URLs per batch' });
     }
     
     const results = [];
     for (const url of urls) {
         try {
-            const result = await browserPool.capture(url, { fullPage, skipCache: false });
+            const result = await takeScreenshot(url, { skipCache: false });
             results.push({ url, success: true, data: result.data.toString('base64'), fromCache: result.fromCache });
             await logUsage(req.user.id, req.apiKey, '/batch', url, 'png', true, 0);
         } catch (error) {
@@ -452,9 +476,8 @@ app.post('/api/batch', authenticateAPIKey, async (req, res) => {
     });
 });
 
-// Stats endpoint
+// User stats endpoint
 app.get('/api/stats', authenticateAPIKey, async (req, res) => {
-    const stats = browserPool.getStats();
     const today = new Date().toISOString().split('T')[0];
     const todayUsage = await db.get(
         'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND date(created_at) = ?',
@@ -462,12 +485,18 @@ app.get('/api/stats', authenticateAPIKey, async (req, res) => {
     );
     
     res.json({
-        system: stats,
+        system: {
+            requests: browserStats.requests,
+            cacheHits: browserStats.cacheHits,
+            cacheHitRate: browserStats.requests > 0 ? ((browserStats.cacheHits / browserStats.requests) * 100).toFixed(2) : 0,
+            uptime: Math.floor((Date.now() - browserStats.startTime) / 1000),
+            browserReady: isBrowserReady
+        },
         user: {
             plan: req.user.plan,
             daily_used: todayUsage.count,
             daily_limit: req.user.daily_limit,
-            remaining: req.user.daily_limit - todayUsage.count,
+            remaining: Math.max(0, req.user.daily_limit - todayUsage.count),
             api_key: req.user.api_key
         }
     });
@@ -481,6 +510,22 @@ app.get('/api/admin/users', authenticateJWT, async (req, res) => {
     
     const users = await db.all('SELECT id, email, full_name, plan, api_key, daily_limit, monthly_limit, created_at FROM users');
     res.json({ users });
+});
+
+app.get('/api/admin/usage', authenticateJWT, async (req, res) => {
+    if (req.user.email !== 'admin@cloudbrowser.com') {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const usage = await db.all(`
+        SELECT u.email, u.full_name, COUNT(l.id) as total_requests,
+               SUM(CASE WHEN date(l.created_at) = date('now') THEN 1 ELSE 0 END) as today_requests
+        FROM users u
+        LEFT JOIN usage_logs l ON u.id = l.user_id
+        GROUP BY u.id
+        ORDER BY total_requests DESC
+    `);
+    res.json({ usage });
 });
 
 // ==================== FRONTEND ROUTES ====================
@@ -508,12 +553,11 @@ app.get('/admin.html', (req, res) => {
 async function startServer() {
     console.log('🚀 Starting Cloud Browser Server...');
     
-    const dbOk = await initDatabase();
-    if (!dbOk) {
-        console.log('⚠️ Database warning - continuing without database features');
-    }
+    // Initialize database
+    await initDatabase();
     
-    await browserPool.init();
+    // Start browser
+    await initBrowser();
     
     app.listen(PORT, () => {
         console.log(`
@@ -524,7 +568,7 @@ async function startServer() {
 ║                                                                              ║
 ║   Status:     🟢 RUNNING                                                    ║
 ║   Port:       ${PORT}                                                          ║
-║   Workers:    ${browserPool.maxSize}                                            ║
+║   Browser:    ${isBrowserReady ? '✅ READY' : '⏳ STARTING'}                     ║
 ║                                                                              ║
 ║   📱 Frontend:                                                              ║
 ║   ├── Home:        http://localhost:${PORT}/                                 ║
@@ -553,43 +597,3 @@ startServer().catch(err => {
     console.error('Fatal error:', err);
     process.exit(1);
 });
-
-
-
-
-
-// Fanya hivi badala ya kuweka URL moja kwa moja kwenye <img src="...">
-async function capture() {
-  const url = document.getElementById('singleUrl').value;
-  const format = document.getElementById('format').value;
-  const resultDiv = document.getElementById('singleResult');
-
-  resultDiv.innerHTML = '<div class="loader"></div><p>Rendering...</p>';
-
-  try {
-    const endpoint = format === 'pdf' ? '/api/pdf' : '/api/screenshot';
-    const res = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`, {
-      headers: { 'X-API-Key': userData.user.api_key }
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Server error ${res.status}: ${errorText.substring(0, 100)}`);
-    }
-
-    const contentType = res.headers.get('content-type');
-    if (contentType === 'image/png') {
-      const blob = await res.blob();
-      const imgUrl = URL.createObjectURL(blob);
-      resultDiv.innerHTML = `<img src="${imgUrl}" alt="Screenshot">`;
-    } else if (contentType === 'application/pdf') {
-      const blob = await res.blob();
-      const pdfUrl = URL.createObjectURL(blob);
-      resultDiv.innerHTML = `<iframe src="${pdfUrl}" width="100%" height="600px"></iframe>`;
-    } else {
-      throw new Error('Unexpected response format from server');
-    }
-  } catch (error) {
-    resultDiv.innerHTML = `<p style="color:#f44336;">❌ Error: ${error.message}</p>`;
-  }
-}
