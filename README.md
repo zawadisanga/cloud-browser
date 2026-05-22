@@ -1,25 +1,24 @@
-# cloud-browser
-cloud-heroku
-
-
-# 🌐 Cloud Browser
-
-**Professional Screenshot & PDF API Service**
+# 🌐 Cloud Browser - Professional Screenshot API
 
 ## Features
-- ✅ Take screenshots of any website
-- ✅ Convert webpages to PDF
+- ✅ User authentication & API keys
+- ✅ Screenshot & PDF generation
 - ✅ Batch processing (up to 10 URLs)
-- ✅ Smart caching for fast responses
+- ✅ Rate limiting per user
+- ✅ Usage tracking & analytics
+- ✅ Admin dashboard
+- ✅ Free/Pro/Enterprise plans
+- ✅ Smart caching
 - ✅ Auto-scaling browser workers
-- ✅ Rate limiting protection
-- ✅ Professional dashboard
-- ✅ RESTful API
 
 ## Quick Start
 
-### Local Development
 ```bash
+# Install dependencies
 npm install
+
+# Install Playwright browsers
 npx playwright install chromium
+
+# Start the server
 npm start
