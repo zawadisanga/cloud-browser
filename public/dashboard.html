@@ -196,7 +196,35 @@
                 window.location.href = '/login.html';
             }
         }
-        
+
+
+        // Ongeza kwenye dashboard.html - kabla ya capture()
+async function checkHealth() {
+    try {
+        const res = await fetch('/health');
+        const data = await res.json();
+        if (data.workers?.available === 0) {
+            return { ready: false, message: 'Browsers are starting, please wait 30 seconds...' };
+        }
+        return { ready: true };
+    } catch (error) {
+        return { ready: false, message: 'Server is waking up...' };
+    }
+}
+
+// Badilisha capture() function
+async function capture() {
+    const resultDiv = document.getElementById('singleResult');
+    
+    // Check health kwanza
+    const health = await checkHealth();
+    if (!health.ready) {
+        resultDiv.innerHTML = `<div class="error-message">⏳ ${health.message}</div>`;
+        return;
+    }
+    
+    // Endelea na capture normal...
+}
         // HII NDIO CAPTURE FUNCTION SAHIHI - IMEREXEBISHWA KUSOMA STREAM MARA MOJA
         async function capture() {
             const url = document.getElementById('singleUrl').value;
