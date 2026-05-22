@@ -199,3 +199,18 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+
+
+
+
+
+---
+
+## 🚀 COMMANDS ZA KUTUMIA (Fanya HIZI KWANZA)
+
+### **Step 1: Unda folder na files**
+```bash
+mkdir cloud-browser
+cd cloud-browser
+git init
