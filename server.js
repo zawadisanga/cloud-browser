@@ -1,4 +1,4 @@
-// Cloud Browser - Professional System with Authentication
+// server.js - Full Professional Version with Database (Heroku Ready)
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -12,87 +12,79 @@ const { open } = require('sqlite');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'cloud-browser-super-secret-key-2024';
 const SALT_ROUNDS = 10;
 
+// ==================== CREATE DATABASE DIRECTORY (HEROKU FIX) ====================
+const dbDir = './database';
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+    console.log('✅ Database directory created');
+}
+
 // ==================== DATABASE SETUP ====================
 let db;
 
 async function initDatabase() {
-    // Create database directory if not exists
-    // Badilisha hii kwenye server.js:
-const fs = require('fs');
-const dbPath = process.env.DATABASE_URL || './database/database.sqlite';
-
-// Create database directory if not exists (Heroku ina filesystem inayoandikika)
-if (!fs.existsSync('./database')) {
-    fs.mkdirSync('./database', { recursive: true });
-}
-
-db = await open({
-    filename: dbPath,
-    driver: sqlite3.Database
-});
-    
-    // Users table
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            full_name TEXT,
-            plan TEXT DEFAULT 'free',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            api_key TEXT UNIQUE,
-            daily_limit INTEGER DEFAULT 50,
-            monthly_limit INTEGER DEFAULT 1000
-        )
-    `);
-    
-    // Usage logs table
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS usage_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            api_key TEXT,
-            endpoint TEXT,
-            url TEXT,
-            format TEXT,
-            success BOOLEAN,
-            response_time INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    `);
-    
-    // API keys table
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS api_keys (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            key TEXT UNIQUE NOT NULL,
-            name TEXT,
-            last_used DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    `);
-    
-    console.log('✅ Database initialized');
-    
-    // Create default admin user if not exists
-    const adminExists = await db.get('SELECT * FROM users WHERE email = ?', ['admin@cloudbrowser.com']);
-    if (!adminExists) {
-        const hashedPassword = await bcrypt.hash('admin123', SALT_ROUNDS);
-        const apiKey = 'admin_' + uuidv4();
-        await db.run(
-            'INSERT INTO users (email, password, full_name, plan, api_key, daily_limit, monthly_limit) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            ['admin@cloudbrowser.com', hashedPassword, 'Administrator', 'enterprise', apiKey, 10000, 100000]
-        );
-        console.log('✅ Admin user created: admin@cloudbrowser.com / admin123');
+    try {
+        db = await open({
+            filename: './database/database.sqlite',
+            driver: sqlite3.Database
+        });
+        
+        // Users table
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                full_name TEXT,
+                plan TEXT DEFAULT 'free',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                api_key TEXT UNIQUE,
+                daily_limit INTEGER DEFAULT 50,
+                monthly_limit INTEGER DEFAULT 1000
+            )
+        `);
+        
+        // Usage logs table
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS usage_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                api_key TEXT,
+                endpoint TEXT,
+                url TEXT,
+                format TEXT,
+                success BOOLEAN,
+                response_time INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        `);
+        
+        console.log('✅ Database initialized');
+        
+        // Create default admin user if not exists
+        const adminExists = await db.get('SELECT * FROM users WHERE email = ?', ['admin@cloudbrowser.com']);
+        if (!adminExists) {
+            const hashedPassword = await bcrypt.hash('admin123', SALT_ROUNDS);
+            const apiKey = 'admin_' + uuidv4().replace(/-/g, '');
+            await db.run(
+                'INSERT INTO users (email, password, full_name, plan, api_key, daily_limit, monthly_limit) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                ['admin@cloudbrowser.com', hashedPassword, 'Administrator', 'enterprise', apiKey, 10000, 100000]
+            );
+            console.log('✅ Admin user created: admin@cloudbrowser.com / admin123');
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Database error:', error);
+        return false;
     }
 }
 
@@ -118,28 +110,32 @@ async function authenticateAPIKey(req, res, next) {
     const apiKey = req.headers['x-api-key'] || req.query.api_key;
     
     if (!apiKey) {
-        return res.status(401).json({ error: 'API key required. Get your key at /register' });
+        return res.status(401).json({ error: 'API key required' });
     }
     
-    const user = await db.get('SELECT * FROM users WHERE api_key = ?', [apiKey]);
-    if (!user) {
-        return res.status(401).json({ error: 'Invalid API key' });
+    try {
+        const user = await db.get('SELECT * FROM users WHERE api_key = ?', [apiKey]);
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid API key' });
+        }
+        
+        // Check daily limits
+        const today = new Date().toISOString().split('T')[0];
+        const todayUsage = await db.get(
+            'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND date(created_at) = ?',
+            [user.id, today]
+        );
+        
+        if (todayUsage.count >= user.daily_limit) {
+            return res.status(429).json({ error: 'Daily limit exceeded' });
+        }
+        
+        req.user = user;
+        req.apiKey = apiKey;
+        next();
+    } catch (error) {
+        res.status(500).json({ error: 'Authentication error' });
     }
-    
-    // Check daily limits
-    const today = new Date().toISOString().split('T')[0];
-    const todayUsage = await db.get(
-        'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND date(created_at) = ?',
-        [user.id, today]
-    );
-    
-    if (todayUsage.count >= user.daily_limit) {
-        return res.status(429).json({ error: 'Daily limit exceeded. Upgrade your plan.' });
-    }
-    
-    req.user = user;
-    req.apiKey = apiKey;
-    next();
 }
 
 async function authenticateJWT(req, res, next) {
@@ -167,7 +163,7 @@ class BrowserPool {
     constructor() {
         this.available = [];
         this.busy = new Set();
-        this.maxSize = parseInt(process.env.MAX_WORKERS) || 3;
+        this.maxSize = parseInt(process.env.MAX_WORKERS) || 2;
         this.stats = {
             totalRequests: 0,
             cacheHits: 0,
@@ -180,9 +176,13 @@ class BrowserPool {
     async init() {
         console.log(`🚀 Initializing ${this.maxSize} browser workers...`);
         for (let i = 0; i < this.maxSize; i++) {
-            this.available.push(await this.createBrowser());
+            try {
+                this.available.push(await this.createBrowser());
+            } catch (error) {
+                console.error('Failed to create browser:', error);
+            }
         }
-        console.log(`✅ ${this.maxSize} browsers ready`);
+        console.log(`✅ ${this.available.length} browsers ready`);
         setInterval(() => this.cleanCache(), 3600000);
     }
 
@@ -194,8 +194,7 @@ class BrowserPool {
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
-                '--disable-web-security',
-                '--disable-features=IsolateOrigins,site-per-process'
+                '--disable-web-security'
             ]
         });
     }
@@ -206,6 +205,7 @@ class BrowserPool {
             this.busy.add(browser);
             return browser;
         }
+        
         return new Promise((resolve) => {
             const checkInterval = setInterval(() => {
                 if (this.available.length > 0) {
@@ -244,7 +244,7 @@ class BrowserPool {
             if (options.format === 'pdf') {
                 result = await page.pdf({ format: options.paperFormat || 'A4', printBackground: true });
             } else {
-                result = await page.screenshot({ fullPage: options.fullPage !== false, type: options.type || 'png', quality: options.quality || 90 });
+                result = await page.screenshot({ fullPage: options.fullPage !== false, type: 'png' });
             }
             
             this.cache.set(cacheKey, result);
@@ -272,7 +272,12 @@ class BrowserPool {
             errors: this.stats.errors,
             cacheHitRate: this.stats.totalRequests > 0 ? ((this.stats.cacheHits / this.stats.totalRequests) * 100).toFixed(2) : 0,
             uptime: Math.floor((Date.now() - this.stats.startTime) / 1000),
-            workers: { available: this.available.length, busy: this.busy.size, total: this.available.length + this.busy.size, max: this.maxSize },
+            workers: { 
+                available: this.available.length, 
+                busy: this.busy.size, 
+                total: this.available.length + this.busy.size, 
+                max: this.maxSize 
+            },
             cacheSize: this.cache.size
         };
     }
@@ -302,91 +307,103 @@ app.post('/api/register', async (req, res) => {
         return res.status(400).json({ error: 'Email and password required' });
     }
     
-    const existingUser = await db.get('SELECT * FROM users WHERE email = ?', [email]);
-    if (existingUser) {
-        return res.status(400).json({ error: 'User already exists' });
+    try {
+        const existingUser = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+        if (existingUser) {
+            return res.status(400).json({ error: 'User already exists' });
+        }
+        
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        const apiKey = 'ck_' + uuidv4().replace(/-/g, '');
+        
+        await db.run(
+            'INSERT INTO users (email, password, full_name, api_key, plan, daily_limit, monthly_limit) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [email, hashedPassword, full_name || email.split('@')[0], apiKey, 'free', 50, 1000]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: 'User registered successfully',
+            api_key: apiKey,
+            plan: 'free',
+            daily_limit: 50
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Registration failed' });
     }
-    
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-    const apiKey = 'ck_' + uuidv4().replace(/-/g, '');
-    
-    await db.run(
-        'INSERT INTO users (email, password, full_name, api_key, plan, daily_limit, monthly_limit) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [email, hashedPassword, full_name || email.split('@')[0], apiKey, 'free', 50, 1000]
-    );
-    
-    res.json({ 
-        success: true, 
-        message: 'User registered successfully',
-        api_key: apiKey,
-        plan: 'free',
-        daily_limit: 50
-    });
 });
 
 // Login
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
-    if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    
-    res.json({
-        success: true,
-        token,
-        user: {
-            id: user.id,
-            email: user.email,
-            full_name: user.full_name,
-            plan: user.plan,
-            api_key: user.api_key,
-            daily_limit: user.daily_limit,
-            monthly_limit: user.monthly_limit
+    try {
+        const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
-    });
+        
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        
+        const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+        
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                full_name: user.full_name,
+                plan: user.plan,
+                api_key: user.api_key,
+                daily_limit: user.daily_limit,
+                monthly_limit: user.monthly_limit
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Login failed' });
+    }
 });
 
 // Get user info
 app.get('/api/user', authenticateJWT, async (req, res) => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayUsage = await db.get(
-        'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND date(created_at) = ?',
-        [req.user.id, today]
-    );
-    
-    const totalUsage = await db.get(
-        'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ?',
-        [req.user.id]
-    );
-    
-    res.json({
-        user: {
-            id: req.user.id,
-            email: req.user.email,
-            full_name: req.user.full_name,
-            plan: req.user.plan,
-            api_key: req.user.api_key,
-            daily_limit: req.user.daily_limit,
-            monthly_limit: req.user.monthly_limit
-        },
-        usage: {
-            today: todayUsage.count,
-            total: totalUsage.count,
-            remaining_today: req.user.daily_limit - todayUsage.count
-        }
-    });
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const todayUsage = await db.get(
+            'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND date(created_at) = ?',
+            [req.user.id, today]
+        );
+        
+        const totalUsage = await db.get(
+            'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ?',
+            [req.user.id]
+        );
+        
+        res.json({
+            user: {
+                id: req.user.id,
+                email: req.user.email,
+                full_name: req.user.full_name,
+                plan: req.user.plan,
+                api_key: req.user.api_key,
+                daily_limit: req.user.daily_limit,
+                monthly_limit: req.user.monthly_limit
+            },
+            usage: {
+                today: todayUsage.count,
+                total: totalUsage.count,
+                remaining_today: req.user.daily_limit - todayUsage.count
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to get user info' });
+    }
 });
 
-// ==================== API ENDPOINTS (Protected) ====================
+// ==================== API ENDPOINTS ====================
 
 // Health check (public)
 app.get('/health', (req, res) => {
@@ -395,7 +412,6 @@ app.get('/health', (req, res) => {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         version: '2.0.0',
-        service: 'Cloud Browser API',
         ...stats
     });
 });
@@ -403,7 +419,7 @@ app.get('/health', (req, res) => {
 // Screenshot endpoint
 app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
     const startTime = Date.now();
-    const { url, fullPage = 'true', width, height, quality } = req.query;
+    const { url, fullPage = 'true' } = req.query;
     
     if (!url) {
         return res.status(400).json({ error: 'URL is required' });
@@ -418,10 +434,7 @@ app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
     try {
         const result = await browserPool.capture(url, {
             format: 'png',
-            fullPage: fullPage === 'true',
-            width: parseInt(width),
-            height: parseInt(height),
-            quality: parseInt(quality)
+            fullPage: fullPage === 'true'
         });
         
         const responseTime = Date.now() - startTime;
@@ -429,7 +442,6 @@ app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
         
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('X-Cache', result.fromCache ? 'HIT' : 'MISS');
-        res.setHeader('X-Remaining-Requests', req.user.daily_limit - responseTime);
         res.send(result.data);
     } catch (error) {
         await logUsage(req.user.id, req.apiKey, '/screenshot', url, 'png', false, Date.now() - startTime);
@@ -440,14 +452,14 @@ app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
 // PDF endpoint
 app.get('/api/pdf', authenticateAPIKey, async (req, res) => {
     const startTime = Date.now();
-    const { url, format = 'A4' } = req.query;
+    const { url } = req.query;
     
     if (!url) {
         return res.status(400).json({ error: 'URL is required' });
     }
     
     try {
-        const result = await browserPool.capture(url, { format: 'pdf', paperFormat: format });
+        const result = await browserPool.capture(url, { format: 'pdf' });
         const responseTime = Date.now() - startTime;
         await logUsage(req.user.id, req.apiKey, '/pdf', url, 'pdf', true, responseTime);
         
@@ -495,10 +507,9 @@ app.post('/api/batch', authenticateAPIKey, async (req, res) => {
     });
 });
 
-// Stats endpoint (authenticated)
+// Stats endpoint
 app.get('/api/stats', authenticateAPIKey, async (req, res) => {
     const stats = browserPool.getStats();
-    
     const today = new Date().toISOString().split('T')[0];
     const todayUsage = await db.get(
         'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND date(created_at) = ?',
@@ -527,23 +538,7 @@ app.get('/api/admin/users', authenticateJWT, async (req, res) => {
     res.json({ users });
 });
 
-app.get('/api/admin/usage', authenticateJWT, async (req, res) => {
-    if (req.user.email !== 'admin@cloudbrowser.com') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-    
-    const usage = await db.all(`
-        SELECT u.email, u.full_name, COUNT(l.id) as total_requests,
-               SUM(CASE WHEN date(l.created_at) = date('now') THEN 1 ELSE 0 END) as today_requests
-        FROM users u
-        LEFT JOIN usage_logs l ON u.id = l.user_id
-        GROUP BY u.id
-        ORDER BY total_requests DESC
-    `);
-    res.json({ usage });
-});
-
-// ==================== FRONTEND ROUTES (IMEBORESHA) ====================
+// ==================== FRONTEND ROUTES ====================
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
@@ -564,15 +559,15 @@ app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
-// Catch-all for other HTML files
-app.get('*.html', (req, res) => {
-    const filePath = path.join(__dirname, 'public', req.path);
-    res.sendFile(filePath);
-});
-
 // ==================== START SERVER ====================
 async function startServer() {
-    await initDatabase();
+    console.log('🚀 Starting Cloud Browser Server...');
+    
+    const dbOk = await initDatabase();
+    if (!dbOk) {
+        console.log('⚠️ Database warning - continuing without database features');
+    }
+    
     await browserPool.init();
     
     app.listen(PORT, () => {
@@ -597,7 +592,7 @@ async function startServer() {
 ║   ├── Admin:      admin@cloudbrowser.com / admin123                         ║
 ║   └── Register new user at /register.html                                   ║
 ║                                                                              ║
-║   📡 API Endpoints:                                                         ║
+║   📡 API Endpoints (use X-API-Key header):                                  ║
 ║   ├── GET  /api/screenshot?url=...                                          ║
 ║   ├── GET  /api/pdf?url=...                                                 ║
 ║   ├── POST /api/batch                                                       ║
@@ -609,4 +604,7 @@ async function startServer() {
     });
 }
 
-startServer();
+startServer().catch(err => {
+    console.error('Fatal error:', err);
+    process.exit(1);
+});
