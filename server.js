@@ -199,6 +199,24 @@ async function initBrowser() {
                 '--memory-pressure-off'
             ]
         });
+
+
+
+
+
+        // Ongeza hii mwishoni mwa initBrowser()
+// Ili browser isife, tumia keep-alive
+setInterval(() => {
+    if (browser && isBrowserReady) {
+        // Keep browser alive
+        console.log('💓 Browser keep-alive ping');
+    }
+}, 30000);
+
+
+
+
+
         
         // PRE-WARMUP: Fungua page na uifunge ili browser iwe tayari
         console.log('Pre-warming browser...');
