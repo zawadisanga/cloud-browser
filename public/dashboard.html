@@ -358,3 +358,53 @@ async function captureWithRetry(retries = 3) {
     </script>
 </body>
 </html>
+
+
+// Ongeza kwenye dashboard.html
+let healthCheckInterval = null;
+
+async function waitForBrowser() {
+    const resultDiv = document.getElementById('singleResult');
+    resultDiv.innerHTML = '<div class="loader"></div><p>Waiting for browser to start...</p>';
+    
+    let attempts = 0;
+    const maxAttempts = 12; // Dakika 1 (5 seconds * 12)
+    
+    while (attempts < maxAttempts) {
+        try {
+            const res = await fetch('/health');
+            const data = await res.json();
+            
+            if (data.status === 'ready' && data.browser === 'active') {
+                resultDiv.innerHTML = '';
+                return true;
+            }
+        } catch (e) {
+            // Ignore errors
+        }
+        
+        attempts++;
+        resultDiv.innerHTML = `<div class="loader"></div><p>Browser starting... (${attempts * 5} seconds)</p>`;
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    
+    resultDiv.innerHTML = '<div class="error-message">⚠️ Browser failed to start. Please refresh the page.</div>';
+    return false;
+}
+
+// Badilisha capture function
+async function capture() {
+    // First, wait for browser to be ready
+    const ready = await waitForBrowser();
+    if (!ready) return;
+    
+    // Then proceed with normal capture...
+    const url = document.getElementById('singleUrl').value;
+    const format = document.getElementById('format').value;
+    const resultDiv = document.getElementById('singleResult');
+    
+    // ... rest of capture code
+}
+
+
+        
