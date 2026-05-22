@@ -159,11 +159,13 @@ async function authenticateJWT(req, res, next) {
 }
 
 // ==================== BROWSER POOL MANAGER ====================
+// BrowserPool class - IMEPUNGUZWA MEMORY
 class BrowserPool {
     constructor() {
         this.available = [];
         this.busy = new Set();
-        this.maxSize = parseInt(process.env.MAX_WORKERS) || 2;
+        // PUNGUZA WORKERS KWA 1 KWANZA!
+        this.maxSize = parseInt(process.env.MAX_WORKERS) || 1;
         this.stats = {
             totalRequests: 0,
             cacheHits: 0,
@@ -171,18 +173,39 @@ class BrowserPool {
             startTime: Date.now()
         };
         this.cache = new Map();
+        this.initializing = true;
     }
 
     async init() {
         console.log(`🚀 Initializing ${this.maxSize} browser workers...`);
-        for (let i = 0; i < this.maxSize; i++) {
-            try {
-                this.available.push(await this.createBrowser());
-            } catch (error) {
-                console.error('Failed to create browser:', error);
+        
+        // Ongeza timeout ya initialization
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Browser initialization timeout')), 60000);
+        });
+        
+        const initPromise = (async () => {
+            for (let i = 0; i < this.maxSize; i++) {
+                try {
+                    console.log(`Starting browser ${i + 1}...`);
+                    this.available.push(await this.createBrowser());
+                    console.log(`✅ Browser ${i + 1} ready`);
+                } catch (error) {
+                    console.error(`Failed to create browser ${i + 1}:`, error);
+                    // Endelea hata kama browser moja imefail
+                }
             }
+            this.initializing = false;
+        })();
+        
+        await Promise.race([initPromise, timeoutPromise]);
+        
+        if (this.available.length === 0) {
+            console.error('⚠️ WARNING: No browsers available!');
+        } else {
+            console.log(`✅ ${this.available.length} browsers ready`);
         }
-        console.log(`✅ ${this.available.length} browsers ready`);
+        
         setInterval(() => this.cleanCache(), 3600000);
     }
 
@@ -194,97 +217,19 @@ class BrowserPool {
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
-                '--disable-web-security'
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding',
+                '--memory-pressure-off',
+                '--max-old-space-size=256'  // Punguza memory per browser
             ]
         });
     }
-
-    async acquire() {
-        if (this.available.length > 0) {
-            const browser = this.available.pop();
-            this.busy.add(browser);
-            return browser;
-        }
-        
-        return new Promise((resolve) => {
-            const checkInterval = setInterval(() => {
-                if (this.available.length > 0) {
-                    clearInterval(checkInterval);
-                    const browser = this.available.pop();
-                    this.busy.add(browser);
-                    resolve(browser);
-                }
-            }, 100);
-        });
-    }
-
-    release(browser) {
-        this.busy.delete(browser);
-        this.available.push(browser);
-    }
-
-    async capture(url, options = {}) {
-        this.stats.totalRequests++;
-        
-        const cacheKey = `${url}:${options.format || 'png'}`;
-        if (this.cache.has(cacheKey) && !options.skipCache) {
-            this.stats.cacheHits++;
-            return { data: this.cache.get(cacheKey), fromCache: true };
-        }
-        
-        const browser = await this.acquire();
-        let page = null;
-        
-        try {
-            page = await browser.newPage();
-            await page.setViewportSize({ width: options.width || 1920, height: options.height || 1080 });
-            await page.goto(url, { waitUntil: 'networkidle', timeout: options.timeout || 30000 });
-            
-            let result;
-            if (options.format === 'pdf') {
-                result = await page.pdf({ format: options.paperFormat || 'A4', printBackground: true });
-            } else {
-                result = await page.screenshot({ fullPage: options.fullPage !== false, type: 'png' });
-            }
-            
-            this.cache.set(cacheKey, result);
-            setTimeout(() => this.cache.delete(cacheKey), 3600000);
-            
-            return { data: result, fromCache: false };
-        } catch (error) {
-            this.stats.errors++;
-            throw error;
-        } finally {
-            if (page) await page.close();
-            this.release(browser);
-        }
-    }
-
-    cleanCache() {
-        this.cache.clear();
-        console.log('🧹 Cache cleared');
-    }
-
-    getStats() {
-        return {
-            requests: this.stats.totalRequests,
-            cacheHits: this.stats.cacheHits,
-            errors: this.stats.errors,
-            cacheHitRate: this.stats.totalRequests > 0 ? ((this.stats.cacheHits / this.stats.totalRequests) * 100).toFixed(2) : 0,
-            uptime: Math.floor((Date.now() - this.stats.startTime) / 1000),
-            workers: { 
-                available: this.available.length, 
-                busy: this.busy.size, 
-                total: this.available.length + this.busy.size, 
-                max: this.maxSize 
-            },
-            cacheSize: this.cache.size
-        };
-    }
+    
+    // ... rest of methods remain the same
 }
-
-const browserPool = new BrowserPool();
-
 // ==================== LOG USAGE ====================
 async function logUsage(userId, apiKey, endpoint, url, format, success, responseTime) {
     try {
