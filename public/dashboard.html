@@ -119,9 +119,9 @@
             border-radius: 10px;
             margin-top: 20px;
         }
-        .success-message {
-            background: rgba(76,175,80,0.2);
-            color: #4caf50;
+        .info-message {
+            background: rgba(33,150,243,0.2);
+            color: #2196f3;
             padding: 15px;
             border-radius: 10px;
             margin-top: 20px;
@@ -196,85 +196,38 @@
                 window.location.href = '/login.html';
             }
         }
-
-
-        // Ongeza kwenye dashboard.html - kabla ya capture()
-async function checkHealth() {
-    try {
-        const res = await fetch('/health');
-        const data = await res.json();
-        if (data.workers?.available === 0) {
-            return { ready: false, message: 'Browsers are starting, please wait 30 seconds...' };
+        
+        // HEALTH CHECK - KUANGALIA KAMA BROWSER IKO TAYARI
+        async function waitForBrowser() {
+            const resultDiv = document.getElementById('singleResult');
+            resultDiv.innerHTML = '<div class="loader"></div><div class="info-message">⏳ Waiting for browser to start...</div>';
+            
+            let attempts = 0;
+            const maxAttempts = 12; // Sekunde 60 (5 * 12)
+            
+            while (attempts < maxAttempts) {
+                try {
+                    const res = await fetch('/health');
+                    const data = await res.json();
+                    
+                    if (data.status === 'ready' && data.browser === 'active') {
+                        resultDiv.innerHTML = '';
+                        return true;
+                    }
+                } catch (e) {
+                    // Ignore errors - endelea kusubiri
+                }
+                
+                attempts++;
+                resultDiv.innerHTML = `<div class="loader"></div><div class="info-message">⏳ Browser starting... (${attempts * 5} seconds)</div>`;
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+            
+            resultDiv.innerHTML = '<div class="error-message">⚠️ Browser failed to start after 60 seconds. Please refresh the page.</div>';
+            return false;
         }
-        return { ready: true };
-    } catch (error) {
-        return { ready: false, message: 'Server is waking up...' };
-    }
-}
-
-// Badilisha capture() function
-async function captureWithRetry(retries = 3) {
-    const url = document.getElementById('singleUrl').value;
-    const format = document.getElementById('format').value;
-    const resultDiv = document.getElementById('singleResult');
-    
-    if (!userData) {
-        resultDiv.innerHTML = '<div class="error-message">Loading user data...</div>';
-        return;
-    }
-    
-    resultDiv.innerHTML = '<div class="loader"></div><p>Starting browser, please wait...</p>';
-    
-    for (let i = 0; i < retries; i++) {
-        try {
-            const endpoint = format === 'pdf' ? '/api/pdf' : '/api/screenshot';
-            const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}&fullPage=true`, {
-                headers: { 'X-API-Key': userData.user.api_key }
-            });
-            
-            if (response.status === 503) {
-                // Browser bado inaanza - subiri na ujaribu tena
-                resultDiv.innerHTML = `<div class="loader"></div><p>Browser starting (attempt ${i + 1}/${retries})...</p>`;
-                await new Promise(resolve => setTimeout(resolve, 10000)); // Subiri sekunde 10
-                continue;
-            }
-            
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-            
-            const contentType = response.headers.get('content-type') || '';
-            
-            if (format === 'pdf' || contentType.includes('application/pdf')) {
-                const blob = await response.blob();
-                const pdfUrl = URL.createObjectURL(blob);
-                resultDiv.innerHTML = `<iframe src="${pdfUrl}" width="100%" height="600px" style="border:none; border-radius:10px;"></iframe>`;
-            } else {
-                const blob = await response.blob();
-                const imgUrl = URL.createObjectURL(blob);
-                resultDiv.innerHTML = `<img src="${imgUrl}" alt="Screenshot of ${url}">`;
-            }
-            
-            loadUserInfo();
-            return; // Success - exit function
-            
-        } catch (error) {
-            if (i === retries - 1) {
-                resultDiv.innerHTML = `<div class="error-message">❌ Error: ${error.message}</div>`;
-            }
-        }
-    }
-}
-    // Check health kwanza
-    const health = await checkHealth();
-    if (!health.ready) {
-        resultDiv.innerHTML = `<div class="error-message">⏳ ${health.message}</div>`;
-        return;
-    }
-    
-    // Endelea na capture normal...
-}
-        // HII NDIO CAPTURE FUNCTION SAHIHI - IMEREXEBISHWA KUSOMA STREAM MARA MOJA
+        
+        // CAPTURE FUNCTION KAMILI
         async function capture() {
             const url = document.getElementById('singleUrl').value;
             const format = document.getElementById('format').value;
@@ -290,6 +243,10 @@ async function captureWithRetry(retries = 3) {
                 return;
             }
             
+            // FIRST: SUBIRI BROWSER IWE TAYARI
+            const browserReady = await waitForBrowser();
+            if (!browserReady) return;
+            
             resultDiv.innerHTML = '<div class="loader"></div><p>Rendering page...</p>';
             
             try {
@@ -301,21 +258,12 @@ async function captureWithRetry(retries = 3) {
                 });
                 
                 if (!response.ok) {
-                    // KUSOMA ERROR MESSAGE TU MARA MOJA
                     let errorMessage = `Server error: ${response.status}`;
                     try {
                         const errorData = await response.json();
                         errorMessage = errorData.error || errorMessage;
                     } catch (e) {
-                        // Ikiwa si JSON, jaribu kusoma kama text
-                        try {
-                            const textError = await response.text();
-                            if (textError && textError.length < 200) {
-                                errorMessage = textError;
-                            }
-                        } catch (textErr) {
-                            // Ignore - tumia errorMessage default
-                        }
+                        // Use default message
                     }
                     throw new Error(errorMessage);
                 }
@@ -358,53 +306,3 @@ async function captureWithRetry(retries = 3) {
     </script>
 </body>
 </html>
-
-
-// Ongeza kwenye dashboard.html
-let healthCheckInterval = null;
-
-async function waitForBrowser() {
-    const resultDiv = document.getElementById('singleResult');
-    resultDiv.innerHTML = '<div class="loader"></div><p>Waiting for browser to start...</p>';
-    
-    let attempts = 0;
-    const maxAttempts = 12; // Dakika 1 (5 seconds * 12)
-    
-    while (attempts < maxAttempts) {
-        try {
-            const res = await fetch('/health');
-            const data = await res.json();
-            
-            if (data.status === 'ready' && data.browser === 'active') {
-                resultDiv.innerHTML = '';
-                return true;
-            }
-        } catch (e) {
-            // Ignore errors
-        }
-        
-        attempts++;
-        resultDiv.innerHTML = `<div class="loader"></div><p>Browser starting... (${attempts * 5} seconds)</p>`;
-        await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-    
-    resultDiv.innerHTML = '<div class="error-message">⚠️ Browser failed to start. Please refresh the page.</div>';
-    return false;
-}
-
-// Badilisha capture function
-async function capture() {
-    // First, wait for browser to be ready
-    const ready = await waitForBrowser();
-    if (!ready) return;
-    
-    // Then proceed with normal capture...
-    const url = document.getElementById('singleUrl').value;
-    const format = document.getElementById('format').value;
-    const resultDiv = document.getElementById('singleResult');
-    
-    // ... rest of capture code
-}
-
-
-        
