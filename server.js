@@ -12,7 +12,6 @@ const { open } = require('sqlite');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,6 +22,12 @@ const SALT_ROUNDS = 10;
 let db;
 
 async function initDatabase() {
+    // Create database directory if not exists
+    const fs = require('fs');
+    if (!fs.existsSync('./database')) {
+        fs.mkdirSync('./database');
+    }
+    
     db = await open({
         filename: './database/database.sqlite',
         driver: sqlite3.Database
@@ -67,19 +72,6 @@ async function initDatabase() {
             key TEXT UNIQUE NOT NULL,
             name TEXT,
             last_used DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    `);
-    
-    // Webhooks table
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS webhooks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            url TEXT NOT NULL,
-            events TEXT,
-            active BOOLEAN DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
@@ -130,7 +122,7 @@ async function authenticateAPIKey(req, res, next) {
         return res.status(401).json({ error: 'Invalid API key' });
     }
     
-    // Check daily/monthly limits
+    // Check daily limits
     const today = new Date().toISOString().split('T')[0];
     const todayUsage = await db.get(
         'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND date(created_at) = ?',
@@ -361,7 +353,6 @@ app.post('/api/login', async (req, res) => {
 
 // Get user info
 app.get('/api/user', authenticateJWT, async (req, res) => {
-    // Get usage stats
     const today = new Date().toISOString().split('T')[0];
     const todayUsage = await db.get(
         'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND date(created_at) = ?',
@@ -504,7 +495,6 @@ app.post('/api/batch', authenticateAPIKey, async (req, res) => {
 app.get('/api/stats', authenticateAPIKey, async (req, res) => {
     const stats = browserPool.getStats();
     
-    // Get user specific usage
     const today = new Date().toISOString().split('T')[0];
     const todayUsage = await db.get(
         'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND date(created_at) = ?',
@@ -549,21 +539,31 @@ app.get('/api/admin/usage', authenticateJWT, async (req, res) => {
     res.json({ usage });
 });
 
-// ==================== FRONTEND ROUTES ====================
+// ==================== FRONTEND ROUTES (IMEBORESHA) ====================
 app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+
+app.get('/dashboard.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/dashboard.html'));
 });
 
-app.get('/login', (req, res) => {
+app.get('/login.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/login.html'));
 });
 
-app.get('/register', (req, res) => {
+app.get('/register.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/register.html'));
 });
 
-app.get('/admin', (req, res) => {
+app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/admin.html'));
+});
+
+// Catch-all for other HTML files
+app.get('*.html', (req, res) => {
+    const filePath = path.join(__dirname, 'public', req.path);
+    res.sendFile(filePath);
 });
 
 // ==================== START SERVER ====================
@@ -583,16 +583,17 @@ async function startServer() {
 ║   Workers:    ${browserPool.maxSize}                                            ║
 ║                                                                              ║
 ║   📱 Frontend:                                                              ║
-║   ├── Dashboard:  http://localhost:${PORT}/                                  ║
-║   ├── Login:      http://localhost:${PORT}/login                             ║
-║   ├── Register:   http://localhost:${PORT}/register                          ║
-║   └── Admin:      http://localhost:${PORT}/admin                             ║
+║   ├── Home:        http://localhost:${PORT}/                                 ║
+║   ├── Dashboard:   http://localhost:${PORT}/dashboard.html                   ║
+║   ├── Login:       http://localhost:${PORT}/login.html                       ║
+║   ├── Register:    http://localhost:${PORT}/register.html                    ║
+║   └── Admin:       http://localhost:${PORT}/admin.html                       ║
 ║                                                                              ║
 ║   🔑 Test Accounts:                                                         ║
 ║   ├── Admin:      admin@cloudbrowser.com / admin123                         ║
-║   └── Register new user at /register                                        ║
+║   └── Register new user at /register.html                                   ║
 ║                                                                              ║
-║   📡 API Endpoints (use X-API-Key header):                                  ║
+║   📡 API Endpoints:                                                         ║
 ║   ├── GET  /api/screenshot?url=...                                          ║
 ║   ├── GET  /api/pdf?url=...                                                 ║
 ║   ├── POST /api/batch                                                       ║
