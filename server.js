@@ -1,4 +1,4 @@
-// server.js - PROFESSIONAL VERSION (Inafanya kazi Render/Heroku)
+// server.js - ROOT VERSION (No public folder, PWA ready)
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -26,7 +26,7 @@ if (!fs.existsSync(dbDir)) {
     console.log('✅ Database directory created');
 }
 
-// ==================== CREATE TEMP DIRECTORY FOR DOWNLOADS ====================
+// ==================== CREATE TEMP DIRECTORY ====================
 const tempDir = './temp';
 if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
@@ -97,7 +97,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
-app.use(express.static('public'));
+app.use(express.static('.')); // SERVE FILES FROM ROOT (NO PUBLIC FOLDER)
 
 const globalLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -137,7 +137,6 @@ async function initBrowser() {
             ]
         });
         
-        // Pre-warming browser
         console.log('Pre-warming browser...');
         const page = await browser.newPage();
         await page.goto('about:blank');
@@ -146,13 +145,11 @@ async function initBrowser() {
         isBrowserReady = true;
         console.log('✅ Browser ready!');
         
-        // Clear cache every hour
         setInterval(() => {
             screenshotCache.clear();
             console.log('🧹 Cache cleared');
         }, 3600000);
         
-        // Keep-alive ping every 30 seconds
         setInterval(async () => {
             if (browser && isBrowserReady) {
                 try {
@@ -173,7 +170,6 @@ async function initBrowser() {
     }
 }
 
-// THE FIXED takeScreenshot FUNCTION - NO MORE DOWNLOAD ERRORS!
 async function takeScreenshot(url, options = {}) {
     browserStats.requests++;
     
@@ -190,16 +186,14 @@ async function takeScreenshot(url, options = {}) {
     let context = null;
     let page = null;
     try {
-        // Create new context with download handling
         context = await browser.newContext({
-            acceptDownloads: true,  // Accept downloads but handle them
+            acceptDownloads: true,
             bypassCSP: true,
             permissions: ['geolocation']
         });
         
         page = await context.newPage();
         
-        // Handle downloads by immediately canceling/ignoring them
         page.on('download', async (download) => {
             console.log(`⚠️ Download detected: ${download.suggestedFilename()} - Cancelling...`);
             try {
@@ -209,7 +203,6 @@ async function takeScreenshot(url, options = {}) {
             }
         });
         
-        // Handle dialogs (pop-ups) automatically
         page.on('dialog', async (dialog) => {
             console.log(`📢 Dialog detected: ${dialog.message()} - Dismissing...`);
             await dialog.dismiss();
@@ -217,17 +210,12 @@ async function takeScreenshot(url, options = {}) {
         
         await page.setViewportSize({ width: 1280, height: 720 });
         
-        // CRITICAL FIX: Use 'load' instead of 'networkidle'
-        // This waits for the page to load but not for network to be completely idle
         await page.goto(url, { 
-            waitUntil: 'load',  // KEY CHANGE: 'load' is faster and avoids download detection issues
+            waitUntil: 'load',
             timeout: 90000 
         });
         
-        // Wait for body to be present
         await page.waitForSelector('body', { timeout: 15000 });
-        
-        // Extra wait for dynamic content (but not too long)
         await page.waitForTimeout(3000);
         
         let result;
@@ -330,7 +318,6 @@ app.get('/api/demo', async (req, res) => {
         return res.status(400).json({ error: 'URL parameter required' });
     }
     
-    // Validate URL
     try {
         new URL(url);
     } catch {
@@ -581,28 +568,45 @@ app.get('/api/stats', authenticateAPIKey, async (req, res) => {
     });
 });
 
-// ==================== FRONTEND PAGES ====================
+// ==================== FRONTEND PAGES (ROOT - NO PUBLIC FOLDER) ====================
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/dashboard.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/index.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/dashboard.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/dashboard.html'));
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
 app.get('/login.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/login.html'));
+    res.sendFile(path.join(__dirname, 'login.html'));
 });
 
 app.get('/register.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/register.html'));
+    res.sendFile(path.join(__dirname, 'register.html'));
 });
 
 app.get('/admin.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/admin.html'));
+    res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// ==================== ADDITIONAL ROUTES FOR BUTTONS ====================
+// PWA files
+app.get('/manifest.json', (req, res) => {
+    res.sendFile(path.join(__dirname, 'manifest.json'));
+});
+
+app.get('/sw.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sw.js'));
+});
+
+app.get('/zas.png', (req, res) => {
+    res.sendFile(path.join(__dirname, 'zas.png'));
+});
+
+// ==================== ADDITIONAL ROUTES ====================
 app.get('/register', (req, res) => {
     res.redirect('/register.html');
 });
@@ -612,23 +616,23 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/docs', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/docs.html'));
+    res.sendFile(path.join(__dirname, 'docs.html'));
 });
 
 app.get('/contact', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/contact.html'));
+    res.sendFile(path.join(__dirname, 'contact.html'));
 });
 
 app.get('/about', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/about.html'));
+    res.sendFile(path.join(__dirname, 'about.html'));
 });
 
 app.get('/privacy', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/privacy.html'));
+    res.sendFile(path.join(__dirname, 'privacy.html'));
 });
 
 app.get('/terms', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/terms.html'));
+    res.sendFile(path.join(__dirname, 'terms.html'));
 });
 
 // ==================== START SERVER ====================
@@ -642,7 +646,7 @@ async function startServer() {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
-║   🌐 CLOUD BROWSER - PROFESSIONAL SYSTEM v4.0                               ║
+║   🌐 CLOUD BROWSER - PROFESSIONAL SYSTEM v5.0                               ║
 ║   ================================================                          ║
 ║                                                                              ║
 ║   Status:     🟢 RUNNING                                                    ║
