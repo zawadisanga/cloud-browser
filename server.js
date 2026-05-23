@@ -196,6 +196,9 @@ async function takeScreenshot(url, options = {}) {
         setTimeout(() => screenshotCache.delete(cacheKey), 3600000);
         
         return { data: result, fromCache: false };
+    } catch (error) {
+        console.error('Screenshot error:', error);
+        throw error;
     } finally {
         if (page) await page.close();
     }
@@ -264,51 +267,46 @@ async function logUsage(userId, apiKey, endpoint, url, format, success, response
     }
 }
 
-
-
-
-// ==================== DEMO ENDPOINT (NO API KEY NEEDED) ====================
+// ==================== DEMO ENDPOINT (NO API KEY NEEDED - FIXED) ====================
 app.get('/api/demo', async (req, res) => {
     const { url, format = 'png' } = req.query;
+    
+    console.log(`📸 Demo request: ${url} (${format})`);
     
     if (!url) {
         return res.status(400).json({ error: 'URL parameter required' });
     }
     
-    // Limit demo requests kwa IP (30 kwa dakika)
-    const clientIp = req.ip || req.connection.remoteAddress;
-    const demoKey = `demo:${clientIp}`;
-    const demoCount = await db.get('SELECT COUNT(*) as count FROM usage_logs WHERE api_key = ? AND created_at > datetime("now", "-1 minute")', ['demo_' + clientIp]);
+    // Validate URL
+    try {
+        new URL(url);
+    } catch {
+        return res.status(400).json({ error: 'Invalid URL format' });
+    }
     
-    if (demoCount.count > 30) {
-        return res.status(429).json({ error: 'Demo limit exceeded. Try again later.' });
+    if (!isBrowserReady) {
+        return res.status(503).json({ error: 'Browser is starting, please wait 30 seconds' });
     }
     
     try {
         const result = await takeScreenshot(url, { format });
         
-        // Log demo usage
-        await db.run(
-            'INSERT INTO usage_logs (user_id, api_key, endpoint, url, format, success, response_time) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [null, 'demo_' + clientIp, '/demo', url, format, 1, 0]
-        );
+        console.log(`✅ Demo screenshot captured: ${url} (from cache: ${result.fromCache})`);
         
         if (format === 'pdf') {
             res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="document-${Date.now()}.pdf"`);
             res.send(result.data);
         } else {
             res.setHeader('Content-Type', 'image/png');
+            res.setHeader('X-Cache', result.fromCache ? 'HIT' : 'MISS');
             res.send(result.data);
         }
     } catch (error) {
+        console.error('Demo error:', error);
         res.status(500).json({ error: error.message });
     }
 });
-
-
-
-
-
 
 // ==================== AUTH ROUTES ====================
 app.post('/api/register', async (req, res) => {
@@ -344,6 +342,7 @@ app.post('/api/register', async (req, res) => {
             daily_limit: 100
         });
     } catch (error) {
+        console.error('Registration error:', error);
         res.status(500).json({ error: 'Registration failed' });
     }
 });
@@ -377,6 +376,7 @@ app.post('/api/login', async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Login error:', error);
         res.status(500).json({ error: 'Login failed' });
     }
 });
@@ -410,6 +410,7 @@ app.get('/api/user', authenticateJWT, async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('User info error:', error);
         res.status(500).json({ error: 'Failed to get user info' });
     }
 });
@@ -528,9 +529,8 @@ app.get('/api/stats', authenticateAPIKey, async (req, res) => {
 });
 
 // ==================== FRONTEND PAGES ====================
-// Home page - landing page nzuri
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/index.html'));
+    res.sendFile(path.join(__dirname, 'public/dashboard.html'));
 });
 
 app.get('/dashboard.html', (req, res) => {
@@ -596,11 +596,7 @@ async function startServer() {
 ║   Port:       ${PORT}                                                          ║
 ║   Browser:    ${isBrowserReady ? '✅ READY' : '⏳ STARTING'}                     ║
 ║                                                                              ║
-║   📱 Frontend Pages:                                                        ║
-║   ├── Home:        https://cloud-browser-nx4z.onrender.com                  ║
-║   ├── Dashboard:   https://cloud-browser-nx4z.onrender.com/dashboard.html   ║
-║   ├── Login:       https://cloud-browser-nx4z.onrender.com/login.html       ║
-║   └── Register:    https://cloud-browser-nx4z.onrender.com/register.html    ║
+║   📱 URL: https://zass.website                                              ║
 ║                                                                              ║
 ║   🔑 Admin: admin@cloudbrowser.com / admin123                               ║
 ║                                                                              ║
