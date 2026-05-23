@@ -122,7 +122,8 @@ async function initBrowser() {
                 '--disable-gpu',
                 '--disable-web-security',
                 '--memory-pressure-off',
-                '--disable-blink-features=AutomationControlled'
+                '--disable-blink-features=AutomationControlled',
+                '--disable-features=DownloadBubble,DownloadBubbleV2'
             ]
         });
         
@@ -176,18 +177,35 @@ async function takeScreenshot(url, options = {}) {
     }
     
     let page = null;
+    let context = null;
     try {
-        page = await browser.newPage();
+        // Create new context with download handling disabled
+        context = await browser.newContext({
+            acceptDownloads: false,  // Disable downloads completely
+            bypassCSP: true         // Bypass Content Security Policy
+        });
+        page = await context.newPage();
+        
         await page.setViewportSize({ width: 1280, height: 720 });
         
+        // FIXED: Changed from 'domcontentloaded' to 'networkidle'
+        // This waits for the page to be fully stable before capturing
         await page.goto(url, { 
-            waitUntil: 'domcontentloaded', 
+            waitUntil: 'networkidle',  // KEY FIX: Waits for network to be idle
             timeout: 120000 
         });
         
+        // Additional wait to ensure popups/dialogs are handled
+        await page.waitForTimeout(2000);
+        
         let result;
         if (options.format === 'pdf') {
-            result = await page.pdf({ format: 'A4', printBackground: true });
+            // For PDF, we need to ensure we capture the main content
+            result = await page.pdf({ 
+                format: 'A4', 
+                printBackground: true,
+                margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
+            });
         } else {
             result = await page.screenshot({ fullPage: false, type: 'png' });
         }
@@ -198,9 +216,11 @@ async function takeScreenshot(url, options = {}) {
         return { data: result, fromCache: false };
     } catch (error) {
         console.error('Screenshot error:', error);
+        browserStats.errors++;
         throw error;
     } finally {
         if (page) await page.close();
+        if (context) await context.close();
     }
 }
 
