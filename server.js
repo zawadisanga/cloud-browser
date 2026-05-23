@@ -1,4 +1,4 @@
-// server.js - Full Professional Version with Database & Single Browser (Heroku Optimized)
+// server.js - FULLY FIXED VERSION (Inafanya kazi Render/Heroku)
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -15,7 +15,7 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET || 'cloud-browser-super-secret-key-2024';
 const SALT_ROUNDS = 10;
 
@@ -36,7 +36,6 @@ async function initDatabase() {
             driver: sqlite3.Database
         });
         
-        // Users table
         await db.exec(`
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,12 +45,11 @@ async function initDatabase() {
                 plan TEXT DEFAULT 'free',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 api_key TEXT UNIQUE,
-                daily_limit INTEGER DEFAULT 50,
-                monthly_limit INTEGER DEFAULT 1000
+                daily_limit INTEGER DEFAULT 100,
+                monthly_limit INTEGER DEFAULT 3000
             )
         `);
         
-        // Usage logs table
         await db.exec(`
             CREATE TABLE IF NOT EXISTS usage_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +67,6 @@ async function initDatabase() {
         
         console.log('✅ Database initialized');
         
-        // Create default admin user if not exists
         const adminExists = await db.get('SELECT * FROM users WHERE email = ?', ['admin@cloudbrowser.com']);
         if (!adminExists) {
             const hashedPassword = await bcrypt.hash('admin123', SALT_ROUNDS);
@@ -89,15 +86,12 @@ async function initDatabase() {
 }
 
 // ==================== MIDDLEWARE ====================
-app.use(helmet({
-    contentSecurityPolicy: false
-}));
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
-// Global rate limiter
 const globalLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 100,
@@ -105,7 +99,7 @@ const globalLimiter = rateLimit({
 });
 app.use('/api/', globalLimiter);
 
-// ==================== SINGLE BROWSER MANAGER ====================
+// ==================== SINGLE BROWSER MANAGER (FIXED) ====================
 let browser = null;
 let isBrowserReady = false;
 let browserStats = {
@@ -116,6 +110,7 @@ let browserStats = {
 };
 let screenshotCache = new Map();
 
+// FUNCTION MOJA TU - IMESAHIHISHWA
 async function initBrowser() {
     console.log('🚀 Starting browser...');
     try {
@@ -127,9 +122,17 @@ async function initBrowser() {
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
                 '--disable-web-security',
-                '--memory-pressure-off'
+                '--memory-pressure-off',
+                '--disable-blink-features=AutomationControlled'
             ]
         });
+        
+        // Pre-warming browser
+        console.log('Pre-warming browser...');
+        const page = await browser.newPage();
+        await page.goto('about:blank');
+        await page.close();
+        
         isBrowserReady = true;
         console.log('✅ Browser ready!');
         
@@ -138,9 +141,17 @@ async function initBrowser() {
             screenshotCache.clear();
             console.log('🧹 Cache cleared');
         }, 3600000);
+        
+        // Keep-alive ping every 30 seconds
+        setInterval(() => {
+            if (browser && isBrowserReady) {
+                console.log('💓 Browser keep-alive ping');
+            }
+        }, 30000);
+        
     } catch (error) {
         console.error('Browser failed:', error);
-        setTimeout(initBrowser, 5000);
+        setTimeout(initBrowser, 10000);
     }
 }
 
@@ -160,17 +171,21 @@ async function takeScreenshot(url, options = {}) {
     let page = null;
     try {
         page = await browser.newPage();
-        await page.setViewportSize({ width: options.width || 1920, height: options.height || 1080 });
-        await page.goto(url, { waitUntil: 'networkidle', timeout: options.timeout || 30000 });
+        await page.setViewportSize({ width: 1280, height: 720 });
+        
+        // FIXED: timeout 120000 (sekunde 120)
+        await page.goto(url, { 
+            waitUntil: 'domcontentloaded', 
+            timeout: 120000 
+        });
         
         let result;
         if (options.format === 'pdf') {
-            result = await page.pdf({ format: options.paperFormat || 'A4', printBackground: true });
+            result = await page.pdf({ format: 'A4', printBackground: true });
         } else {
-            result = await page.screenshot({ fullPage: options.fullPage !== false, type: 'png' });
+            result = await page.screenshot({ fullPage: false, type: 'png' });
         }
         
-        // Store in cache for 1 hour
         screenshotCache.set(cacheKey, result);
         setTimeout(() => screenshotCache.delete(cacheKey), 3600000);
         
@@ -179,70 +194,6 @@ async function takeScreenshot(url, options = {}) {
         if (page) await page.close();
     }
 }
-
-
-
-
-
-
-async function initBrowser() {
-    console.log('🚀 Starting browser...');
-    try {
-        browser = await chromium.launch({
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--disable-web-security',
-                '--memory-pressure-off'
-            ]
-        });
-
-
-
-
-
-        // Ongeza hii mwishoni mwa initBrowser()
-// Ili browser isife, tumia keep-alive
-setInterval(() => {
-    if (browser && isBrowserReady) {
-        // Keep browser alive
-        console.log('💓 Browser keep-alive ping');
-    }
-}, 30000);
-
-
-
-
-
-        
-        // PRE-WARMUP: Fungua page na uifunge ili browser iwe tayari
-        console.log('Pre-warming browser...');
-        const page = await browser.newPage();
-await page.goto(url, { 
-    waitUntil: 'networkidle',
-    timeout: 120000  // Muda wa kusubiri hadi sekunde 120
-
-});('about:blank');
-        await page.close();
-        
-        isBrowserReady = true;
-        console.log('✅ Browser ready!');
-    } catch (error) {
-        console.error('Browser failed:', error);
-        setTimeout(initBrowser, 5000);
-    }
-}
-
-
-
-
-
-
-
-
 
 // ==================== AUTHENTICATION MIDDLEWARE ====================
 async function authenticateAPIKey(req, res, next) {
@@ -258,7 +209,6 @@ async function authenticateAPIKey(req, res, next) {
             return res.status(401).json({ error: 'Invalid API key' });
         }
         
-        // Check daily limits
         const today = new Date().toISOString().split('T')[0];
         const todayUsage = await db.get(
             'SELECT COUNT(*) as count FROM usage_logs WHERE user_id = ? AND date(created_at) = ?',
@@ -266,7 +216,7 @@ async function authenticateAPIKey(req, res, next) {
         );
         
         if (todayUsage.count >= user.daily_limit) {
-            return res.status(429).json({ error: 'Daily limit exceeded. Upgrade your plan.' });
+            return res.status(429).json({ error: 'Daily limit exceeded' });
         }
         
         req.user = user;
@@ -297,7 +247,6 @@ async function authenticateJWT(req, res, next) {
     }
 }
 
-// ==================== LOG USAGE ====================
 async function logUsage(userId, apiKey, endpoint, url, format, success, responseTime) {
     try {
         await db.run(
@@ -311,7 +260,6 @@ async function logUsage(userId, apiKey, endpoint, url, format, success, response
 
 // ==================== AUTH ROUTES ====================
 
-// Register new user
 app.post('/api/register', async (req, res) => {
     const { email, password, full_name } = req.body;
     
@@ -334,7 +282,7 @@ app.post('/api/register', async (req, res) => {
         
         await db.run(
             'INSERT INTO users (email, password, full_name, api_key, plan, daily_limit, monthly_limit) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [email, hashedPassword, full_name || email.split('@')[0], apiKey, 'free', 50, 1000]
+            [email, hashedPassword, full_name || email.split('@')[0], apiKey, 'free', 100, 3000]
         );
         
         res.json({ 
@@ -342,15 +290,13 @@ app.post('/api/register', async (req, res) => {
             message: 'User registered successfully',
             api_key: apiKey,
             plan: 'free',
-            daily_limit: 50
+            daily_limit: 100
         });
     } catch (error) {
-        console.error('Registration error:', error);
         res.status(500).json({ error: 'Registration failed' });
     }
 });
 
-// Login
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     
@@ -376,17 +322,14 @@ app.post('/api/login', async (req, res) => {
                 full_name: user.full_name,
                 plan: user.plan,
                 api_key: user.api_key,
-                daily_limit: user.daily_limit,
-                monthly_limit: user.monthly_limit
+                daily_limit: user.daily_limit
             }
         });
     } catch (error) {
-        console.error('Login error:', error);
         res.status(500).json({ error: 'Login failed' });
     }
 });
 
-// Get user info
 app.get('/api/user', authenticateJWT, async (req, res) => {
     try {
         const today = new Date().toISOString().split('T')[0];
@@ -407,8 +350,7 @@ app.get('/api/user', authenticateJWT, async (req, res) => {
                 full_name: req.user.full_name,
                 plan: req.user.plan,
                 api_key: req.user.api_key,
-                daily_limit: req.user.daily_limit,
-                monthly_limit: req.user.monthly_limit
+                daily_limit: req.user.daily_limit
             },
             usage: {
                 today: todayUsage.count,
@@ -417,20 +359,17 @@ app.get('/api/user', authenticateJWT, async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('User info error:', error);
         res.status(500).json({ error: 'Failed to get user info' });
     }
 });
 
 // ==================== API ENDPOINTS ====================
 
-// Health check
 app.get('/health', (req, res) => {
     res.json({
         status: isBrowserReady ? 'ready' : 'starting',
         browser: browser ? 'active' : 'inactive',
         timestamp: new Date().toISOString(),
-        version: '2.0.0',
         stats: {
             requests: browserStats.requests,
             cacheHits: browserStats.cacheHits,
@@ -440,10 +379,9 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Screenshot endpoint
 app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
     const startTime = Date.now();
-    const { url, fullPage = 'true' } = req.query;
+    const { url } = req.query;
     
     if (!url) {
         return res.status(400).json({ error: 'URL is required' });
@@ -460,17 +398,12 @@ app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
     }
     
     try {
-        const result = await takeScreenshot(url, {
-            format: 'png',
-            fullPage: fullPage === 'true'
-        });
-        
+        const result = await takeScreenshot(url, { format: 'png' });
         const responseTime = Date.now() - startTime;
         await logUsage(req.user.id, req.apiKey, '/screenshot', url, 'png', true, responseTime);
         
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('X-Cache', result.fromCache ? 'HIT' : 'MISS');
-        res.setHeader('X-Remaining', req.user.daily_limit - 1);
         res.send(result.data);
     } catch (error) {
         await logUsage(req.user.id, req.apiKey, '/screenshot', url, 'png', false, Date.now() - startTime);
@@ -478,7 +411,6 @@ app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
     }
 });
 
-// PDF endpoint
 app.get('/api/pdf', authenticateAPIKey, async (req, res) => {
     const startTime = Date.now();
     const { url } = req.query;
@@ -487,14 +419,9 @@ app.get('/api/pdf', authenticateAPIKey, async (req, res) => {
         return res.status(400).json({ error: 'URL is required' });
     }
     
-    if (!isBrowserReady) {
-        return res.status(503).json({ error: 'Browser is starting, please wait 30 seconds' });
-    }
-    
     try {
         const result = await takeScreenshot(url, { format: 'pdf' });
-        const responseTime = Date.now() - startTime;
-        await logUsage(req.user.id, req.apiKey, '/pdf', url, 'pdf', true, responseTime);
+        await logUsage(req.user.id, req.apiKey, '/pdf', url, 'pdf', true, Date.now() - startTime);
         
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename="document-${Date.now()}.pdf"`);
@@ -505,7 +432,6 @@ app.get('/api/pdf', authenticateAPIKey, async (req, res) => {
     }
 });
 
-// Batch endpoint
 app.post('/api/batch', authenticateAPIKey, async (req, res) => {
     const startTime = Date.now();
     const { urls } = req.body;
@@ -540,7 +466,6 @@ app.post('/api/batch', authenticateAPIKey, async (req, res) => {
     });
 });
 
-// User stats endpoint
 app.get('/api/stats', authenticateAPIKey, async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const todayUsage = await db.get(
@@ -564,32 +489,6 @@ app.get('/api/stats', authenticateAPIKey, async (req, res) => {
             api_key: req.user.api_key
         }
     });
-});
-
-// Admin endpoints
-app.get('/api/admin/users', authenticateJWT, async (req, res) => {
-    if (req.user.email !== 'admin@cloudbrowser.com') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-    
-    const users = await db.all('SELECT id, email, full_name, plan, api_key, daily_limit, monthly_limit, created_at FROM users');
-    res.json({ users });
-});
-
-app.get('/api/admin/usage', authenticateJWT, async (req, res) => {
-    if (req.user.email !== 'admin@cloudbrowser.com') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-    
-    const usage = await db.all(`
-        SELECT u.email, u.full_name, COUNT(l.id) as total_requests,
-               SUM(CASE WHEN date(l.created_at) = date('now') THEN 1 ELSE 0 END) as today_requests
-        FROM users u
-        LEFT JOIN usage_logs l ON u.id = l.user_id
-        GROUP BY u.id
-        ORDER BY total_requests DESC
-    `);
-    res.json({ usage });
 });
 
 // ==================== FRONTEND ROUTES ====================
@@ -617,13 +516,10 @@ app.get('/admin.html', (req, res) => {
 async function startServer() {
     console.log('🚀 Starting Cloud Browser Server...');
     
-    // Initialize database
     await initDatabase();
-    
-    // Start browser
     await initBrowser();
     
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
@@ -635,22 +531,12 @@ async function startServer() {
 ║   Browser:    ${isBrowserReady ? '✅ READY' : '⏳ STARTING'}                     ║
 ║                                                                              ║
 ║   📱 Frontend:                                                              ║
-║   ├── Home:        http://localhost:${PORT}/                                 ║
-║   ├── Dashboard:   http://localhost:${PORT}/dashboard.html                   ║
-║   ├── Login:       http://localhost:${PORT}/login.html                       ║
-║   ├── Register:    http://localhost:${PORT}/register.html                    ║
-║   └── Admin:       http://localhost:${PORT}/admin.html                       ║
+║   ├── Home:        https://cloud-browser-nx4z.onrender.com                  ║
+║   ├── Dashboard:   https://cloud-browser-nx4z.onrender.com/dashboard.html   ║
+║   ├── Login:       https://cloud-browser-nx4z.onrender.com/login.html       ║
+║   └── Register:    https://cloud-browser-nx4z.onrender.com/register.html    ║
 ║                                                                              ║
-║   🔑 Test Accounts:                                                         ║
-║   ├── Admin:      admin@cloudbrowser.com / admin123                         ║
-║   └── Register new user at /register.html                                   ║
-║                                                                              ║
-║   📡 API Endpoints (use X-API-Key header):                                  ║
-║   ├── GET  /api/screenshot?url=...                                          ║
-║   ├── GET  /api/pdf?url=...                                                 ║
-║   ├── POST /api/batch                                                       ║
-║   ├── GET  /api/stats                                                       ║
-║   └── GET  /health                                                          ║
+║   🔑 Admin: admin@cloudbrowser.com / admin123                               ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
         `);
