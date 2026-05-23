@@ -253,6 +253,32 @@ clearTimeout(timeoutId);
             resultDiv.innerHTML = '<div class="error-message">⚠️ Browser failed to start after 60 seconds. Please refresh the page.</div>';
             return false;
         }
+
+
+
+
+
+        async function waitForBrowser() {
+    const resultDiv = document.getElementById('singleResult');
+    resultDiv.innerHTML = '<div class="loader"></div><p>Browser inaamka, tafadhali subiri sekunde 30...</p>';
+    
+    for (let i = 0; i < 12; i++) {
+        try {
+            const res = await fetch('/health');
+            const data = await res.json();
+            if (data.status === 'ready' && data.browser === 'active') {
+                resultDiv.innerHTML = '';
+                return true;
+            }
+        } catch (e) {}
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    resultDiv.innerHTML = '<p style="color:red;">Browser haijaanza. Tafadhali onyoja na ujaribu tena.</p>';
+    return false;
+}
+
+
+
         
         // CAPTURE FUNCTION KAMILI
         async function capture() {
