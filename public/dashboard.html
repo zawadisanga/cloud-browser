@@ -15,6 +15,15 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ZASS Cloud Browser - World's Best Screenshot API">
     <meta name="twitter:description" content="Capture any website instantly. Free tier available.">
+    
+    <!-- PWA Manifest & Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ZASS Browser">
+    
     <title>ZASS Cloud Browser | World's Best Screenshot & PDF API</title>
     
     <style>
@@ -753,6 +762,19 @@ func main() {
                 }
             });
         });
+        
+        // ==================== PWA SERVICE WORKER REGISTRATION ====================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered successfully:', registration);
+                    })
+                    .catch(error => {
+                        console.log('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
