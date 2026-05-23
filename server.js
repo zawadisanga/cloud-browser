@@ -221,7 +221,11 @@ setInterval(() => {
         // PRE-WARMUP: Fungua page na uifunge ili browser iwe tayari
         console.log('Pre-warming browser...');
         const page = await browser.newPage();
-        await page.goto('about:blank');
+       // Tafuta sehemu ya "await page.goto" na ibadilishe kuwa:
+await page.goto(url, { 
+    waitUntil: 'networkidle',   // Subiri hadi mtandao utulie
+    timeout: 60000              // Muda wa kusubiri hadi sekunde 60
+});('about:blank');
         await page.close();
         
         isBrowserReady = true;
