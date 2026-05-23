@@ -264,6 +264,52 @@ async function logUsage(userId, apiKey, endpoint, url, format, success, response
     }
 }
 
+
+
+
+// ==================== DEMO ENDPOINT (NO API KEY NEEDED) ====================
+app.get('/api/demo', async (req, res) => {
+    const { url, format = 'png' } = req.query;
+    
+    if (!url) {
+        return res.status(400).json({ error: 'URL parameter required' });
+    }
+    
+    // Limit demo requests kwa IP (30 kwa dakika)
+    const clientIp = req.ip || req.connection.remoteAddress;
+    const demoKey = `demo:${clientIp}`;
+    const demoCount = await db.get('SELECT COUNT(*) as count FROM usage_logs WHERE api_key = ? AND created_at > datetime("now", "-1 minute")', ['demo_' + clientIp]);
+    
+    if (demoCount.count > 30) {
+        return res.status(429).json({ error: 'Demo limit exceeded. Try again later.' });
+    }
+    
+    try {
+        const result = await takeScreenshot(url, { format });
+        
+        // Log demo usage
+        await db.run(
+            'INSERT INTO usage_logs (user_id, api_key, endpoint, url, format, success, response_time) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [null, 'demo_' + clientIp, '/demo', url, format, 1, 0]
+        );
+        
+        if (format === 'pdf') {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.send(result.data);
+        } else {
+            res.setHeader('Content-Type', 'image/png');
+            res.send(result.data);
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+
+
+
+
 // ==================== AUTH ROUTES ====================
 app.post('/api/register', async (req, res) => {
     const { email, password, full_name } = req.body;
