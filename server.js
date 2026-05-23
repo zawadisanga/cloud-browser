@@ -26,6 +26,13 @@ if (!fs.existsSync(dbDir)) {
     console.log('✅ Database directory created');
 }
 
+// ==================== CREATE TEMP DIRECTORY FOR DOWNLOADS ====================
+const tempDir = './temp';
+if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+    console.log('✅ Temp directory created');
+}
+
 // ==================== DATABASE SETUP ====================
 let db;
 
@@ -123,7 +130,10 @@ async function initBrowser() {
                 '--disable-web-security',
                 '--memory-pressure-off',
                 '--disable-blink-features=AutomationControlled',
-                '--disable-features=DownloadBubble,DownloadBubbleV2'
+                '--disable-features=DownloadBubble,DownloadBubbleV2',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding'
             ]
         });
         
@@ -163,6 +173,7 @@ async function initBrowser() {
     }
 }
 
+// THE FIXED takeScreenshot FUNCTION - NO MORE DOWNLOAD ERRORS!
 async function takeScreenshot(url, options = {}) {
     browserStats.requests++;
     
@@ -176,31 +187,51 @@ async function takeScreenshot(url, options = {}) {
         throw new Error('Browser is starting, please wait 30 seconds');
     }
     
-    let page = null;
     let context = null;
+    let page = null;
     try {
-        // Create new context with download handling disabled
+        // Create new context with download handling
         context = await browser.newContext({
-            acceptDownloads: false,  // Disable downloads completely
-            bypassCSP: true         // Bypass Content Security Policy
+            acceptDownloads: true,  // Accept downloads but handle them
+            bypassCSP: true,
+            permissions: ['geolocation']
         });
+        
         page = await context.newPage();
+        
+        // Handle downloads by immediately canceling/ignoring them
+        page.on('download', async (download) => {
+            console.log(`⚠️ Download detected: ${download.suggestedFilename()} - Cancelling...`);
+            try {
+                await download.cancel();
+            } catch (e) {
+                console.log('Download cancel error:', e.message);
+            }
+        });
+        
+        // Handle dialogs (pop-ups) automatically
+        page.on('dialog', async (dialog) => {
+            console.log(`📢 Dialog detected: ${dialog.message()} - Dismissing...`);
+            await dialog.dismiss();
+        });
         
         await page.setViewportSize({ width: 1280, height: 720 });
         
-        // FIXED: Changed from 'domcontentloaded' to 'networkidle'
-        // This waits for the page to be fully stable before capturing
+        // CRITICAL FIX: Use 'load' instead of 'networkidle'
+        // This waits for the page to load but not for network to be completely idle
         await page.goto(url, { 
-            waitUntil: 'networkidle',  // KEY FIX: Waits for network to be idle
-            timeout: 120000 
+            waitUntil: 'load',  // KEY CHANGE: 'load' is faster and avoids download detection issues
+            timeout: 90000 
         });
         
-        // Additional wait to ensure popups/dialogs are handled
-        await page.waitForTimeout(2000);
+        // Wait for body to be present
+        await page.waitForSelector('body', { timeout: 15000 });
+        
+        // Extra wait for dynamic content (but not too long)
+        await page.waitForTimeout(3000);
         
         let result;
         if (options.format === 'pdf') {
-            // For PDF, we need to ensure we capture the main content
             result = await page.pdf({ 
                 format: 'A4', 
                 printBackground: true,
@@ -213,14 +244,16 @@ async function takeScreenshot(url, options = {}) {
         screenshotCache.set(cacheKey, result);
         setTimeout(() => screenshotCache.delete(cacheKey), 3600000);
         
+        console.log(`✅ Captured: ${url.substring(0, 50)}... (${options.format || 'png'})`);
+        
         return { data: result, fromCache: false };
     } catch (error) {
         console.error('Screenshot error:', error);
         browserStats.errors++;
         throw error;
     } finally {
-        if (page) await page.close();
-        if (context) await context.close();
+        if (page) await page.close().catch(e => console.log('Page close error:', e.message));
+        if (context) await context.close().catch(e => console.log('Context close error:', e.message));
     }
 }
 
@@ -287,7 +320,7 @@ async function logUsage(userId, apiKey, endpoint, url, format, success, response
     }
 }
 
-// ==================== DEMO ENDPOINT (NO API KEY NEEDED - FIXED) ====================
+// ==================== DEMO ENDPOINT (NO API KEY NEEDED) ====================
 app.get('/api/demo', async (req, res) => {
     const { url, format = 'png' } = req.query;
     
@@ -609,7 +642,7 @@ async function startServer() {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
-║   🌐 CLOUD BROWSER - PROFESSIONAL SYSTEM v3.0                               ║
+║   🌐 CLOUD BROWSER - PROFESSIONAL SYSTEM v4.0                               ║
 ║   ================================================                          ║
 ║                                                                              ║
 ║   Status:     🟢 RUNNING                                                    ║
