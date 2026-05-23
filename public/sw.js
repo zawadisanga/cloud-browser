@@ -1,10 +1,13 @@
-const CACHE_NAME = 'zass-v1';
-const urls = ['/', '/dashboard.html', '/manifest.json'];
-
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urls)));
+// sw.js - SIMPLE VERSION
+self.addEventListener('install', event => {
+    console.log('Service Worker installed');
+    self.skipWaiting();
 });
 
-self.addEventListener('fetch', e => {
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+self.addEventListener('fetch', event => {
+    // Don't cache API calls
+    if (event.request.url.includes('/api/')) {
+        return;
+    }
+    event.respondWith(fetch(event.request));
 });
