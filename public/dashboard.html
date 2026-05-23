@@ -467,7 +467,7 @@
                 <h1>The World's Fastest Cloud Browser API</h1>
                 <p>Capture screenshots and generate PDFs from any website in milliseconds. Used by 10,000+ developers worldwide. Enterprise-grade reliability.</p>
                 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <button class="btn-primary" onclick="document.getElementById('demo-input').focus()">Try Live Demo ↓</button>
+                    <button class="btn-primary" onclick="document.getElementById('demo-url').focus()">Try Live Demo ↓</button>
                     <button class="btn-outline" onclick="window.location.href='/docs'">Read Documentation →</button>
                 </div>
                 <div class="stats">
@@ -497,7 +497,7 @@
         <div class="demo-section" id="demo">
             <h2 style="text-align: center; margin-bottom: 30px;">🎯 Try It Now - No Login Required</h2>
             <div class="demo-box">
-                <input type="text" id="demo-url" placeholder="https://example.com" value="https://zass.website">
+                <input type="text" id="demo-url" placeholder="https://example.com" value="https://example.com">
                 <select id="demo-format">
                     <option value="png">📸 PNG Screenshot</option>
                     <option value="pdf">📄 PDF Document</option>
@@ -654,7 +654,7 @@ curl "https://zass.website/api/render?url=https://example.com" --output screensh
         }
         createStars();
         
-        // Live demo capture
+        // Live demo capture - NOW USING /api/demo (NO API KEY NEEDED)
         async function captureDemo() {
             const url = document.getElementById('demo-url').value;
             const format = document.getElementById('demo-format').value;
@@ -668,7 +668,13 @@ curl "https://zass.website/api/render?url=https://example.com" --output screensh
             resultDiv.innerHTML = '<div class="loader"></div><p style="margin-left: 20px;">Rendering your page...</p>';
             
             try {
-                const response = await fetch(`/api/render?url=${encodeURIComponent(url)}&format=${format}`);
+                // CHANGED: Using /api/demo instead of /api/render
+                const response = await fetch(`/api/demo?url=${encodeURIComponent(url)}&format=${format}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server error: ${response.status} - ${errorText}`);
+                }
                 
                 if (format === 'pdf') {
                     const blob = await response.blob();
@@ -683,7 +689,8 @@ curl "https://zass.website/api/render?url=https://example.com" --output screensh
                 // Update stats counter
                 updateStats();
             } catch (error) {
-                resultDiv.innerHTML = `<p style="color: #ff6b6b;">❌ Error: ${error.message}</p>`;
+                console.error('Capture error:', error);
+                resultDiv.innerHTML = `<p style="color: #ff6b6b;">❌ Error: ${error.message}</p><p style="font-size: 14px; margin-top: 10px;">Make sure the backend server is running and /api/demo endpoint exists.</p>`;
             }
         }
         
