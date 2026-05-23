@@ -1,4 +1,4 @@
-// server.js - FULLY FIXED VERSION (Inafanya kazi Render/Heroku)
+// server.js - PROFESSIONAL VERSION (Inafanya kazi Render/Heroku)
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -99,7 +99,7 @@ const globalLimiter = rateLimit({
 });
 app.use('/api/', globalLimiter);
 
-// ==================== SINGLE BROWSER MANAGER (FIXED) ====================
+// ==================== BROWSER MANAGER ====================
 let browser = null;
 let isBrowserReady = false;
 let browserStats = {
@@ -110,7 +110,6 @@ let browserStats = {
 };
 let screenshotCache = new Map();
 
-// FUNCTION MOJA TU - IMESAHIHISHWA
 async function initBrowser() {
     console.log('🚀 Starting browser...');
     try {
@@ -143,9 +142,17 @@ async function initBrowser() {
         }, 3600000);
         
         // Keep-alive ping every 30 seconds
-        setInterval(() => {
+        setInterval(async () => {
             if (browser && isBrowserReady) {
-                console.log('💓 Browser keep-alive ping');
+                try {
+                    const testPage = await browser.newPage();
+                    await testPage.close();
+                    console.log('💓 Browser keep-alive ping');
+                } catch (e) {
+                    console.log('Browser needs restart, reinitializing...');
+                    isBrowserReady = false;
+                    await initBrowser();
+                }
             }
         }, 30000);
         
@@ -173,7 +180,6 @@ async function takeScreenshot(url, options = {}) {
         page = await browser.newPage();
         await page.setViewportSize({ width: 1280, height: 720 });
         
-        // FIXED: timeout 120000 (sekunde 120)
         await page.goto(url, { 
             waitUntil: 'domcontentloaded', 
             timeout: 120000 
@@ -259,7 +265,6 @@ async function logUsage(userId, apiKey, endpoint, url, format, success, response
 }
 
 // ==================== AUTH ROUTES ====================
-
 app.post('/api/register', async (req, res) => {
     const { email, password, full_name } = req.body;
     
@@ -364,7 +369,6 @@ app.get('/api/user', authenticateJWT, async (req, res) => {
 });
 
 // ==================== API ENDPOINTS ====================
-
 app.get('/health', (req, res) => {
     res.json({
         status: isBrowserReady ? 'ready' : 'starting',
@@ -379,9 +383,9 @@ app.get('/health', (req, res) => {
     });
 });
 
-app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
+app.get('/api/render', authenticateAPIKey, async (req, res) => {
     const startTime = Date.now();
-    const { url } = req.query;
+    const { url, format = 'png' } = req.query;
     
     if (!url) {
         return res.status(400).json({ error: 'URL is required' });
@@ -398,61 +402,45 @@ app.get('/api/screenshot', authenticateAPIKey, async (req, res) => {
     }
     
     try {
-        const result = await takeScreenshot(url, { format: 'png' });
+        const result = await takeScreenshot(url, { format });
         const responseTime = Date.now() - startTime;
-        await logUsage(req.user.id, req.apiKey, '/screenshot', url, 'png', true, responseTime);
+        await logUsage(req.user.id, req.apiKey, '/render', url, format, true, responseTime);
         
-        res.setHeader('Content-Type', 'image/png');
+        if (format === 'pdf') {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="document-${Date.now()}.pdf"`);
+        } else {
+            res.setHeader('Content-Type', 'image/png');
+        }
         res.setHeader('X-Cache', result.fromCache ? 'HIT' : 'MISS');
         res.send(result.data);
     } catch (error) {
-        await logUsage(req.user.id, req.apiKey, '/screenshot', url, 'png', false, Date.now() - startTime);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/pdf', authenticateAPIKey, async (req, res) => {
-    const startTime = Date.now();
-    const { url } = req.query;
-    
-    if (!url) {
-        return res.status(400).json({ error: 'URL is required' });
-    }
-    
-    try {
-        const result = await takeScreenshot(url, { format: 'pdf' });
-        await logUsage(req.user.id, req.apiKey, '/pdf', url, 'pdf', true, Date.now() - startTime);
-        
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="document-${Date.now()}.pdf"`);
-        res.send(result.data);
-    } catch (error) {
-        await logUsage(req.user.id, req.apiKey, '/pdf', url, 'pdf', false, Date.now() - startTime);
+        await logUsage(req.user.id, req.apiKey, '/render', url, format, false, Date.now() - startTime);
         res.status(500).json({ error: error.message });
     }
 });
 
 app.post('/api/batch', authenticateAPIKey, async (req, res) => {
     const startTime = Date.now();
-    const { urls } = req.body;
+    const { urls, format = 'png' } = req.body;
     
     if (!urls || !Array.isArray(urls)) {
         return res.status(400).json({ error: 'URLs array is required' });
     }
     
-    if (urls.length > 5) {
-        return res.status(400).json({ error: 'Maximum 5 URLs per batch' });
+    if (urls.length > 10) {
+        return res.status(400).json({ error: 'Maximum 10 URLs per batch' });
     }
     
     const results = [];
     for (const url of urls) {
         try {
-            const result = await takeScreenshot(url, { skipCache: false });
+            const result = await takeScreenshot(url, { format, skipCache: false });
             results.push({ url, success: true, data: result.data.toString('base64'), fromCache: result.fromCache });
-            await logUsage(req.user.id, req.apiKey, '/batch', url, 'png', true, 0);
+            await logUsage(req.user.id, req.apiKey, '/batch', url, format, true, 0);
         } catch (error) {
             results.push({ url, success: false, error: error.message });
-            await logUsage(req.user.id, req.apiKey, '/batch', url, 'png', false, 0);
+            await logUsage(req.user.id, req.apiKey, '/batch', url, format, false, 0);
         }
     }
     
@@ -482,6 +470,8 @@ app.get('/api/stats', authenticateAPIKey, async (req, res) => {
             browserReady: isBrowserReady
         },
         user: {
+            id: req.user.id,
+            email: req.user.email,
             plan: req.user.plan,
             daily_used: todayUsage.count,
             daily_limit: req.user.daily_limit,
@@ -491,7 +481,8 @@ app.get('/api/stats', authenticateAPIKey, async (req, res) => {
     });
 });
 
-// ==================== FRONTEND ROUTES ====================
+// ==================== FRONTEND PAGES ====================
+// Home page - landing page nzuri
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
@@ -512,6 +503,35 @@ app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
+// ==================== ADDITIONAL ROUTES FOR BUTTONS ====================
+app.get('/register', (req, res) => {
+    res.redirect('/register.html');
+});
+
+app.get('/login', (req, res) => {
+    res.redirect('/login.html');
+});
+
+app.get('/docs', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/docs.html'));
+});
+
+app.get('/contact', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/contact.html'));
+});
+
+app.get('/about', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/about.html'));
+});
+
+app.get('/privacy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/privacy.html'));
+});
+
+app.get('/terms', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/terms.html'));
+});
+
 // ==================== START SERVER ====================
 async function startServer() {
     console.log('🚀 Starting Cloud Browser Server...');
@@ -523,14 +543,14 @@ async function startServer() {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
-║   🌐 CLOUD BROWSER - PROFESSIONAL SYSTEM v2.0                               ║
+║   🌐 CLOUD BROWSER - PROFESSIONAL SYSTEM v3.0                               ║
 ║   ================================================                          ║
 ║                                                                              ║
 ║   Status:     🟢 RUNNING                                                    ║
 ║   Port:       ${PORT}                                                          ║
 ║   Browser:    ${isBrowserReady ? '✅ READY' : '⏳ STARTING'}                     ║
 ║                                                                              ║
-║   📱 Frontend:                                                              ║
+║   📱 Frontend Pages:                                                        ║
 ║   ├── Home:        https://cloud-browser-nx4z.onrender.com                  ║
 ║   ├── Dashboard:   https://cloud-browser-nx4z.onrender.com/dashboard.html   ║
 ║   ├── Login:       https://cloud-browser-nx4z.onrender.com/login.html       ║
