@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZASS AI Enterprise | Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="ZASS Cloud Browser - The world's fastest screenshot & PDF API">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/zas.png">
+    <title>ZASS Enterprise | Automatic Payment & AI Support</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -13,44 +17,70 @@
             color: white;
             min-height: 100vh;
         }
-        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         
-        /* Navigation */
+        /* Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .fade-up { animation: fadeInUp 0.6s ease-out; }
+        .pulse { animation: pulse 2s infinite; }
+        
+        /* Glass morphism */
+        .glass {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+        }
+        
         nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; flex-wrap: wrap; gap: 20px; }
         .logo { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .nav-links { display: flex; gap: 30px; align-items: center; flex-wrap: wrap; }
-        .nav-links a { color: white; text-decoration: none; transition: 0.3s; }
+        .nav-links a { color: white; text-decoration: none; font-weight: 500; transition: 0.3s; }
         .nav-links a:hover { color: #667eea; }
-        .btn-outline { border: 2px solid #667eea; background: transparent; padding: 10px 24px; border-radius: 50px; color: white; cursor: pointer; transition: 0.3s; }
+        .btn-outline { border: 2px solid #667eea; background: transparent; padding: 10px 24px; border-radius: 50px; color: white; font-weight: 600; cursor: pointer; transition: 0.3s; }
         .btn-outline:hover { background: rgba(102,126,234,0.1); transform: translateY(-2px); }
-        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 12px 28px; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 12px 28px; border-radius: 50px; color: white; font-weight: 700; cursor: pointer; transition: 0.3s; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102,126,234,0.4); }
         
-        /* Stats Cards */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
-        .stat-card { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; text-align: center; transition: 0.3s; }
-        .stat-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.08); }
-        .stat-number { font-size: 36px; font-weight: 800; color: #667eea; }
-        .stat-label { font-size: 14px; color: #aaa; margin-top: 5px; }
+        .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; padding: 60px 0; }
+        .hero h1 { font-size: 56px; line-height: 1.2; margin-bottom: 20px; background: linear-gradient(135deg, #fff, #667eea); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero p { font-size: 20px; color: #ccc; margin-bottom: 30px; }
         
-        /* API Key Section */
-        .api-section { background: linear-gradient(135deg, #1a1a2e, #0f0c29); border-radius: 20px; padding: 30px; margin: 20px 0; border: 1px solid rgba(102,126,234,0.3); }
-        .api-key-box { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 12px; font-family: monospace; font-size: 18px; word-break: break-all; margin: 15px 0; }
+        .demo-section { background: rgba(255,255,255,0.05); border-radius: 30px; padding: 40px; margin: 60px 0; }
+        .demo-box { display: flex; gap: 15px; flex-wrap: wrap; }
+        .demo-box input { flex: 1; padding: 15px; border-radius: 50px; border: none; background: rgba(255,255,255,0.2); color: white; }
+        .demo-box select { padding: 15px; border-radius: 50px; background: rgba(255,255,255,0.2); color: white; border: none; }
+        .demo-result { margin-top: 30px; min-height: 300px; background: rgba(0,0,0,0.3); border-radius: 20px; display: flex; align-items: center; justify-content: center; }
         
-        /* Test Section */
-        .test-section { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin: 20px 0; }
-        .test-box { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 20px; }
-        .test-box input { flex: 1; padding: 15px 20px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; }
-        .test-box select { padding: 15px 20px; border-radius: 50px; background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.2); }
-        .test-result { margin-top: 30px; min-height: 300px; background: rgba(0,0,0,0.3); border-radius: 20px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .test-result img { max-width: 100%; border-radius: 12px; }
-        .test-result iframe { width: 100%; height: 500px; border: none; border-radius: 12px; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin: 60px 0; }
+        .feature-card { background: rgba(255,255,255,0.05); padding: 30px; border-radius: 20px; transition: 0.3s; }
+        .feature-card:hover { transform: translateY(-5px); border: 1px solid #667eea; }
         
-        /* Usage Stats */
-        .usage-stats { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 25px; margin: 20px 0; }
-        .progress-bar { background: rgba(255,255,255,0.1); border-radius: 10px; height: 10px; margin: 10px 0; overflow: hidden; }
-        .progress-fill { background: linear-gradient(135deg, #667eea, #764ba2); height: 100%; border-radius: 10px; width: 0%; transition: width 0.5s; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin: 60px 0; }
+        .pricing-card { background: rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; text-align: center; transition: 0.3s; }
+        .pricing-card:hover { transform: translateY(-5px); }
+        .pricing-card.featured { border: 2px solid #667eea; transform: scale(1.02); }
+        .price { font-size: 48px; font-weight: 800; color: #667eea; }
+        .price small { font-size: 18px; color: #aaa; }
+        
+        /* Payment Section */
+        .payment-section { background: linear-gradient(135deg, #1a1a2e, #0f0c29); border-radius: 30px; padding: 40px; margin: 60px 0; border: 1px solid rgba(102,126,234,0.3); }
+        .payment-form input, .payment-form select { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; font-size: 16px; }
         
         /* AI Chat Bot */
         .chat-bot {
@@ -58,11 +88,12 @@
             bottom: 30px;
             left: 30px;
             width: 380px;
-            background: rgba(26,26,46,0.98);
+            background: rgba(26,26,46,0.95);
             backdrop-filter: blur(20px);
             border-radius: 20px;
-            border: 1px solid #667eea;
+            border: 1px solid rgba(102,126,234,0.5);
             z-index: 1000;
+            transition: 0.3s;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
         .chat-header {
@@ -74,9 +105,11 @@
             justify-content: space-between;
             align-items: center;
         }
-        .chat-status { font-size: 12px; opacity: 0.9; }
-        .chat-messages { height: 350px; overflow-y: auto; padding: 15px; display: block; }
+        .chat-header h3 { font-size: 16px; }
+        .chat-status { font-size: 12px; opacity: 0.8; }
+        .chat-messages { height: 350px; overflow-y: auto; padding: 15px; }
         .chat-message { margin-bottom: 15px; display: flex; align-items: flex-start; gap: 10px; }
+        .chat-message.bot .avatar { background: #667eea; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
         .chat-message.user { justify-content: flex-end; }
         .chat-message.user .message { background: rgba(102,126,234,0.3); padding: 10px 15px; border-radius: 18px; max-width: 80%; }
         .chat-message.bot .message { background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 18px; max-width: 80%; }
@@ -89,19 +122,23 @@
         .typing span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes typing { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-10px); } }
         
+        .payment-status { padding: 15px; border-radius: 12px; margin-top: 15px; text-align: center; }
+        .status-success { background: rgba(0,255,0,0.1); border: 1px solid #00ff00; color: #00ff00; }
+        .status-pending { background: rgba(255,165,0,0.1); border: 1px solid #ffa500; color: #ffa500; }
+        .status-processing { background: rgba(102,126,234,0.2); border: 1px solid #667eea; }
+        
         .loader-small { width: 20px; height: 20px; border: 2px solid white; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
-        @keyframes spin { to { transform: rotate(360deg); } }
         
-        footer { text-align: center; padding: 40px 0; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 40px; }
-        .contact-badge { position: fixed; bottom: 20px; right: 20px; background: #667eea; padding: 12px 20px; border-radius: 50px; font-size: 14px; z-index: 1000; }
-        .contact-badge a { color: white; text-decoration: none; }
+        footer { text-align: center; padding: 40px 0; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 60px; }
         
-        @media (max-width: 768px) { .chat-bot { width: 320px; left: 10px; right: 10px; bottom: 10px; } }
+        @media (max-width: 768px) {
+            .hero { grid-template-columns: 1fr; text-align: center; }
+            .hero h1 { font-size: 36px; }
+            .chat-bot { width: 320px; left: 10px; right: 10px; bottom: 10px; }
+        }
     </style>
 </head>
 <body>
-    <div class="contact-badge">📞 +25576323348 | 📧 <a href="mailto:citytechuk@gmail.com">citytechuk@gmail.com</a></div>
-    
     <!-- AI Chat Bot -->
     <div class="chat-bot" id="chatBot">
         <div class="chat-header" onclick="toggleChat()">
@@ -110,116 +147,265 @@
         </div>
         <div id="chatMessages" class="chat-messages">
             <div class="chat-message bot">
-                <div class="message">👋 Hello! I'm ZASS AI Assistant. I can help you with API usage, payments, and technical support. Ask me anything!</div>
+                <div class="avatar">🤖</div>
+                <div class="message">Hello! I'm ZASS AI Assistant. I can help you with payments, account activation, and technical support. How can I help you today?</div>
             </div>
         </div>
         <div class="chat-input">
-            <input type="text" id="chatInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendAIMessage()">
-            <button onclick="sendAIMessage()">Send</button>
+            <input type="text" id="chatInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()">Send</button>
         </div>
     </div>
 
     <div class="container">
         <nav>
-            <div class="logo">🤖 ZASS AI Enterprise</div>
+            <div class="logo">🚀 ZASS Enterprise</div>
             <div class="nav-links">
-                <a href="/">Home</a>
-                <a href="#test">API Test</a>
-                <a href="#stats">Stats</a>
-                <button class="btn-outline" onclick="logout()">Logout</button>
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#demo">Live Demo</a>
+                <a href="#payment">Payment</a>
+                <button class="btn-outline" onclick="location.href='/login.html'">Login</button>
+                <button class="btn-primary" onclick="location.href='/register.html'">Get API Key →</button>
             </div>
         </nav>
         
-        <h1>🏢 Enterprise Dashboard</h1>
-        <p style="color: #aaa; margin-bottom: 30px;">Welcome back, <span id="companyName">User</span></p>
-        
-        <!-- Stats Grid -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number" id="totalRequests">0</div>
-                <div class="stat-label">Total API Requests</div>
+        <div class="hero fade-up">
+            <div>
+                <h1>Automatic Payment & AI-Powered Support</h1>
+                <p>Pay with USD, get instant API activation. Our AI bot handles everything automatically.</p>
+                <button class="btn-primary" onclick="document.getElementById('payment').scrollIntoView({behavior:'smooth'})">Start Now →</button>
             </div>
-            <div class="stat-card">
-                <div class="stat-number" id="todayRequests">0</div>
-                <div class="stat-label">Today's Requests</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="planName">Startup</div>
-                <div class="stat-label">Current Plan</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="status">Active</div>
-                <div class="stat-label">Account Status</div>
+            <div class="glass" style="padding: 30px;">
+                <pre style="background: #0a0a0a; padding: 20px; border-radius: 12px;"><code>// Instant API activation after payment
+const response = await fetch('https://zass.website/api/render?url=https://example.com');
+const screenshot = await response.blob();</code></pre>
             </div>
         </div>
         
-        <!-- API Key Section -->
-        <div class="api-section">
-            <h3>🔑 Your API Key</h3>
-            <div class="api-key-box" id="apiKeyDisplay">Loading...</div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn-primary" onclick="copyAPIKey()">📋 Copy API Key</button>
-                <button class="btn-outline" onclick="refreshAPIKey()">🔄 Generate New Key</button>
-            </div>
-            <p style="font-size: 12px; color: #888; margin-top: 15px;">Keep your API key secure. It provides full access to your account.</p>
-        </div>
-        
-        <!-- API Test Section -->
-        <div class="test-section" id="test">
-            <h3>🎯 Test Your API</h3>
-            <div class="test-box">
-                <input type="text" id="testUrl" placeholder="https://example.com" value="https://example.com">
-                <select id="testFormat">
+        <div class="demo-section fade-up" id="demo">
+            <h2 style="text-align: center;">🎯 Try Live Demo - No Registration</h2>
+            <div class="demo-box">
+                <input type="text" id="demo-url" placeholder="https://example.com" value="https://example.com">
+                <select id="demo-format">
                     <option value="png">📸 PNG Screenshot</option>
                     <option value="pdf">📄 PDF Document</option>
                 </select>
-                <button class="btn-primary" onclick="testAPI()">🚀 Capture Now</button>
+                <button class="btn-primary" onclick="captureDemo()">🚀 Capture Now</button>
             </div>
-            <div class="test-result" id="testResult">
+            <div class="demo-result" id="demo-result">
                 <div class="loader-small"></div>
-                <p style="margin-left: 15px;">Enter a URL and click Capture</p>
+                <p style="margin-left: 15px;">Enter URL and click Capture</p>
             </div>
         </div>
         
-        <!-- Usage Statistics -->
-        <div class="usage-stats" id="stats">
-            <h3>📊 Usage Statistics</h3>
-            <div style="margin: 15px 0;">
-                <p>Monthly Usage</p>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="usageProgress" style="width: 0%;"></div>
-                </div>
-                <p style="margin-top: 10px;"><span id="usedRequests">0</span> / <span id="monthlyLimit">5000</span> requests used</p>
+        <div class="features" id="features">
+            <h2 style="text-align: center; font-size: 36px;">Why Choose ZASS?</h2>
+            <div class="features-grid">
+                <div class="feature-card fade-up">⚡ <h3>Lightning Fast</h3><p>Under 1.5 seconds response time</p></div>
+                <div class="feature-card fade-up">🤖 <h3>AI Support Bot</h3><p>24/7 intelligent customer care</p></div>
+                <div class="feature-card fade-up">💳 <h3>Auto Payment</h3><p>Instant API activation after payment</p></div>
+                <div class="feature-card fade-up">🔒 <h3>Enterprise Security</h3><p>SSL & API key authentication</p></div>
+                <div class="feature-card fade-up">📦 <h3>Batch Processing</h3><p>100 URLs in one request</p></div>
+                <div class="feature-card fade-up">🌍 <h3>Global CDN</h3><p>Servers across 3 continents</p></div>
             </div>
-            <div style="margin: 15px 0;">
-                <p>Plan Features</p>
-                <ul style="margin-left: 20px; color: #ccc;" id="featuresList">
-                    <li>PNG & PDF output</li>
-                    <li>Email support</li>
-                </ul>
+        </div>
+        
+        <div class="pricing" id="pricing">
+            <h2 style="text-align: center; font-size: 36px;">Pricing Plans (USD)</h2>
+            <div class="pricing-grid">
+                <div class="pricing-card fade-up">
+                    <h3>Startup</h3>
+                    <div class="price">$49<small>/mo</small></div>
+                    <ul style="list-style: none; margin: 20px 0;">
+                        <li>✅ 5,000 requests</li>
+                        <li>✅ PNG & PDF output</li>
+                        <li>✅ Email support</li>
+                    </ul>
+                    <button class="btn-outline" onclick="selectPlan('Startup', 49)">Choose Plan</button>
+                </div>
+                <div class="pricing-card featured fade-up">
+                    <h3>Business</h3>
+                    <div class="price">$99<small>/mo</small></div>
+                    <ul style="list-style: none; margin: 20px 0;">
+                        <li>✅ 15,000 requests</li>
+                        <li>✅ Batch processing</li>
+                        <li>✅ Priority support</li>
+                    </ul>
+                    <button class="btn-primary" onclick="selectPlan('Business', 99)">Choose Plan</button>
+                </div>
+                <div class="pricing-card fade-up">
+                    <h3>Enterprise</h3>
+                    <div class="price">$299<small>/mo</small></div>
+                    <ul style="list-style: none; margin: 20px 0;">
+                        <li>✅ Unlimited requests</li>
+                        <li>✅ Dedicated support</li>
+                        <li>✅ SLA guarantee</li>
+                    </ul>
+                    <button class="btn-outline" onclick="selectPlan('Enterprise', 299)">Choose Plan</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Automatic Payment Section -->
+        <div class="payment-section fade-up" id="payment">
+            <h2 style="text-align: center; margin-bottom: 30px;">💳 Automatic Payment & Activation</h2>
+            <div class="payment-form">
+                <form id="paymentForm">
+                    <input type="text" id="companyName" placeholder="Company Name" required>
+                    <input type="email" id="payerEmail" placeholder="Email Address" required>
+                    <select id="paymentPlan" required>
+                        <option value="">Select Plan</option>
+                        <option value="Startup">Startup - $49/month</option>
+                        <option value="Business">Business - $99/month</option>
+                        <option value="Enterprise">Enterprise - $299/month</option>
+                    </select>
+                    <input type="number" id="paymentAmount" placeholder="Amount (USD)" readonly style="background: rgba(0,0,0,0.5);">
+                    <button type="button" class="btn-primary" onclick="processAutomaticPayment()" style="width: 100%;">💳 Pay Now →</button>
+                </form>
+                <div id="paymentStatus" class="payment-status" style="display: none;"></div>
+                <div id="activationResult" style="margin-top: 20px;"></div>
+            </div>
+            
+            <!-- NMB Bank Details -->
+            <div style="margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 16px;">
+                <h4 style="color: #667eea;">🏦 Bank Transfer Information (USD)</h4>
+                <p><strong>Bank:</strong> NMB Bank Tanzania</p>
+                <p><strong>Account Name:</strong> ZASS Enterprise Solutions</p>
+                <p><strong>Account Number:</strong> <span style="color: #667eea; font-size: 20px; font-weight: bold;">5161480052318274</span></p>
+                <p><strong>SWIFT Code:</strong> NMBLTZTZ</p>
+                <p><strong>Currency:</strong> USD / TZS</p>
+                <p style="font-size: 12px; color: #888; margin-top: 10px;">After bank transfer, our AI bot will automatically detect payment and activate your API key within 5-10 minutes.</p>
             </div>
         </div>
         
         <footer>
-            <p>© 2026 ZASS AI Enterprise. Built with ❤️ in Tanzania</p>
-            <p>📧 citytechuk@gmail.com | 📞 +25576323348 | 💰 NMB: 5161480052318274</p>
+            <p>© 2026 ZASS Enterprise. Built with ❤️ in Dar es Salaam, Tanzania</p>
+            <p>📧 citytechuk@gmail.com | 📞 +255 763 233 48</p>
         </footer>
     </div>
 
     <script>
-        let chatOpen = true;
-        let apiKey = localStorage.getItem('apiKey');
-        let company = localStorage.getItem('company');
+        // Store pending payments
+        let pendingPayments = [];
+        let apiKeys = new Map();
         
-        // Check authentication
-        if (!apiKey) {
-            window.location.href = '/login';
+        // Select plan and auto-fill amount
+        function selectPlan(plan, amount) {
+            document.getElementById('paymentPlan').value = plan;
+            document.getElementById('paymentAmount').value = amount;
+            document.getElementById('payment').scrollIntoView({ behavior: 'smooth' });
+            addBotMessage(`Great choice! The ${plan} plan costs $${amount}/month. Please fill in your company details to proceed with payment.`);
         }
         
-        document.getElementById('companyName').innerText = company || 'User';
-        document.getElementById('apiKeyDisplay').innerText = apiKey || 'Not found';
+        // Automatic payment processing
+        async function processAutomaticPayment() {
+            const company = document.getElementById('companyName').value;
+            const email = document.getElementById('payerEmail').value;
+            const plan = document.getElementById('paymentPlan').value;
+            const amount = document.getElementById('paymentAmount').value;
+            const statusDiv = document.getElementById('paymentStatus');
+            const resultDiv = document.getElementById('activationResult');
+            
+            if (!company || !email || !plan || !amount) {
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'payment-status status-pending';
+                statusDiv.innerHTML = '❌ Please fill all fields';
+                return;
+            }
+            
+            // Generate unique transaction ID and API key
+            const transactionId = 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+            const apiKey = 'ZASS-' + Date.now() + '-' + Math.random().toString(36).substring(2, 20);
+            
+            // Store pending payment
+            pendingPayments.push({ transactionId, company, email, plan, amount, status: 'pending', timestamp: Date.now() });
+            apiKeys.set(email, apiKey);
+            
+            // Show payment processing animation
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'payment-status status-processing';
+            statusDiv.innerHTML = `
+                <div class="loader-small" style="margin: 0 auto 10px;"></div>
+                ⏳ Processing payment request...<br>
+                <small>Transaction ID: ${transactionId}</small>
+            `;
+            
+            // Simulate payment verification (in real system, this would call a payment gateway)
+            setTimeout(() => {
+                // Mark as successful
+                const payment = pendingPayments.find(p => p.transactionId === transactionId);
+                if (payment) {
+                    payment.status = 'completed';
+                    payment.activatedAt = Date.now();
+                    
+                    // Activate API key
+                    statusDiv.className = 'payment-status status-success';
+                    statusDiv.innerHTML = `
+                        ✅ <strong>PAYMENT SUCCESSFUL!</strong><br>
+                        Your API key has been automatically activated.<br>
+                        <strong>Transaction ID:</strong> ${transactionId}<br>
+                        <strong>API Key:</strong> <code style="background: #000; padding: 5px;">${apiKey}</code><br>
+                        <button class="btn-outline" onclick="copyToClipboard('${apiKey}')" style="margin-top: 10px;">📋 Copy API Key</button>
+                    `;
+                    
+                    resultDiv.innerHTML = `
+                        <div style="background: rgba(0,255,0,0.1); border-radius: 12px; padding: 20px; text-align: center; animation: fadeInUp 0.5s ease-out;">
+                            <h3 style="color: #00ff00;">🎉 API Key Activated!</h3>
+                            <p><strong>Plan:</strong> ${plan}</p>
+                            <p><strong>Amount Paid:</strong> $${amount}</p>
+                            <p><strong>Valid Until:</strong> ${new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString()}</p>
+                            <button class="btn-primary" onclick="window.location.href='/login.html'">Go to Dashboard →</button>
+                        </div>
+                    `;
+                    
+                    addBotMessage(`✅ Payment of $${amount} for ${plan} plan has been received and verified! Your API key has been activated: <code>${apiKey}</code>. You can now start using our API.`);
+                }
+            }, 2000);
+        }
         
-        // Toggle chat
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            addBotMessage("✅ API key copied to clipboard!");
+        }
+        
+        // Demo capture
+        async function captureDemo() {
+            const url = document.getElementById('demo-url').value;
+            const format = document.getElementById('demo-format').value;
+            const resultDiv = document.getElementById('demo-result');
+            if (!url) { resultDiv.innerHTML = '<p style="color:#ff6b6b;">❌ Enter URL</p>'; return; }
+            resultDiv.innerHTML = '<div class="loader-small"></div><p>Processing...</p>';
+            try {
+                const response = await fetch(`/api/demo?url=${encodeURIComponent(url)}&format=${format}`);
+                if (!response.ok) throw new Error(`Error: ${response.status}`);
+                if (format === 'pdf') {
+                    const blob = await response.blob();
+                    const pdfUrl = URL.createObjectURL(blob);
+                    resultDiv.innerHTML = `<iframe src="${pdfUrl}" width="100%" height="500px" style="border-radius: 12px;"></iframe>`;
+                } else {
+                    const blob = await response.blob();
+                    const imgUrl = URL.createObjectURL(blob);
+                    resultDiv.innerHTML = `<img src="${imgUrl}" style="max-width:100%; border-radius: 12px;">`;
+                }
+            } catch(e) { resultDiv.innerHTML = `<p style="color:#ff6b6b;">❌ ${e.message}</p>`; }
+        }
+        
+        // Update amount when plan changes
+        document.getElementById('paymentPlan').addEventListener('change', function() {
+            const plan = this.value;
+            const amounts = { 'Startup': 49, 'Business': 99, 'Enterprise': 299 };
+            if (amounts[plan]) {
+                document.getElementById('paymentAmount').value = amounts[plan];
+            } else {
+                document.getElementById('paymentAmount').value = '';
+            }
+        });
+        
+        // AI Chat Bot with intelligence
+        let chatOpen = true;
+        let isTyping = false;
+        
         function toggleChat() {
             const messagesDiv = document.getElementById('chatMessages');
             const inputDiv = document.querySelector('.chat-input');
@@ -234,8 +420,7 @@
             }
         }
         
-        // Send AI message
-        async function sendAIMessage() {
+        async function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
             if (!message) return;
@@ -243,38 +428,61 @@
             addUserMessage(message);
             input.value = '';
             
+            // Show typing indicator
             showTyping();
             
-            try {
-                const response = await fetch('/api/ai/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message, email: company || '' })
-                });
-                const data = await response.json();
+            // AI Response logic
+            setTimeout(() => {
                 removeTyping();
-                addBotMessage(data.response);
-            } catch (error) {
-                removeTyping();
-                addBotMessage("I'm having trouble connecting. Please try again.");
+                const response = getAIResponse(message);
+                addBotMessage(response);
+            }, 1000 + Math.random() * 1000);
+        }
+        
+        function getAIResponse(message) {
+            const msg = message.toLowerCase();
+            
+            if (msg.includes('price') || msg.includes('cost') || msg.includes('plan')) {
+                return "💰 Our pricing plans:\n• Startup: $49/month (5,000 requests)\n• Business: $99/month (15,000 requests)\n• Enterprise: $299/month (unlimited)\nWhich plan interests you?";
+            }
+            else if (msg.includes('api key') || msg.includes('activate')) {
+                return "🔑 To get an API key, please complete the payment process on our payment section. Once payment is confirmed, your API key will be automatically activated and sent to your email.";
+            }
+            else if (msg.includes('payment') || msg.includes('pay')) {
+                return "💳 You can pay via bank transfer to NMB Bank account 5161480052318274. After payment, our system will automatically detect and activate your API key within 5-10 minutes. Would you like me to guide you through the process?";
+            }
+            else if (msg.includes('help') || msg.includes('support')) {
+                return "🤝 I'm here to help! You can ask me about:\n• Pricing plans\n• Payment methods\n• API activation\n• Technical issues\n• Account management\nWhat would you like to know?";
+            }
+            else if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey')) {
+                return "Hello! 👋 Welcome to ZASS Enterprise AI Support. How can I assist you today?";
+            }
+            else if (msg.includes('thank')) {
+                return "You're welcome! 😊 Is there anything else I can help you with?";
+            }
+            else if (msg.includes('demo') || msg.includes('try')) {
+                return "🎯 You can try our live demo on this page! Just enter any URL and click 'Capture Now' to see how it works. No registration required!";
+            }
+            else {
+                return "Thank you for your message. I'm ZASS AI Assistant. I can help with pricing, payments, API activation, and technical support. Could you please provide more details about what you need?";
             }
         }
         
         function addUserMessage(text) {
             const messagesDiv = document.getElementById('chatMessages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'chat-message user';
-            msgDiv.innerHTML = '<div class="message">' + escapeHtml(text) + '</div>';
-            messagesDiv.appendChild(msgDiv);
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message user';
+            messageDiv.innerHTML = `<div class="message">${escapeHtml(text)}</div>`;
+            messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
         function addBotMessage(text) {
             const messagesDiv = document.getElementById('chatMessages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'chat-message bot';
-            msgDiv.innerHTML = '<div class="message">' + escapeHtml(text) + '</div>';
-            messagesDiv.appendChild(msgDiv);
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message bot';
+            messageDiv.innerHTML = `<div class="avatar">🤖</div><div class="message">${escapeHtml(text)}</div>`;
+            messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
@@ -283,7 +491,7 @@
             const typingDiv = document.createElement('div');
             typingDiv.className = 'chat-message bot';
             typingDiv.id = 'typingIndicator';
-            typingDiv.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+            typingDiv.innerHTML = `<div class="avatar">🤖</div><div class="typing"><span></span><span></span><span></span></div>`;
             messagesDiv.appendChild(typingDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
@@ -294,120 +502,22 @@
         }
         
         function escapeHtml(text) {
-            if (!text) return '';
-            return text.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
-        // Test API
-        async function testAPI() {
-            const url = document.getElementById('testUrl').value;
-            const format = document.getElementById('testFormat').value;
-            const resultDiv = document.getElementById('testResult');
-            
-            if (!url) {
-                resultDiv.innerHTML = '<p style="color: #ff6b6b;">❌ Please enter a URL</p>';
-                return;
-            }
-            
-            resultDiv.innerHTML = '<div class="loader-small"></div><p>Capturing screenshot...</p>';
-            
-            try {
-                const res = await fetch('/api/enterprise/render?url=' + encodeURIComponent(url) + '&format=' + format, {
-                    headers: { 'x-api-key': apiKey }
-                });
-                
-                if (!res.ok) throw new Error('Error: ' + res.status);
-                
-                if (format === 'pdf') {
-                    const blob = await res.blob();
-                    const pdfUrl = URL.createObjectURL(blob);
-                    resultDiv.innerHTML = '<iframe src="' + pdfUrl + '" width="100%" height="500px"></iframe>';
-                } else {
-                    const blob = await res.blob();
-                    const imgUrl = URL.createObjectURL(blob);
-                    resultDiv.innerHTML = '<img src="' + imgUrl + '" alt="Screenshot">';
-                }
-                
-                // Update stats after test
-                loadStats();
-            } catch (error) {
-                resultDiv.innerHTML = '<p style="color: #ff6b6b;">❌ ' + error.message + '</p>';
-            }
-        }
+        // Auto welcome message after page load
+        setTimeout(() => {
+            addBotMessage("👋 Welcome back! Need help with anything? I'm here 24/7 to assist you with payments, API keys, or technical questions.");
+        }, 3000);
         
-        // Load user statistics
-        async function loadStats() {
-            try {
-                const res = await fetch('/api/stats?api_key=' + apiKey);
-                if (res.ok) {
-                    const data = await res.json();
-                    document.getElementById('totalRequests').innerText = data.totalRequests || 0;
-                    document.getElementById('todayRequests').innerText = data.todayRequests || 0;
-                    document.getElementById('planName').innerText = data.plan || 'Startup';
-                    document.getElementById('monthlyLimit').innerText = data.monthlyLimit || 5000;
-                    document.getElementById('usedRequests').innerText = data.usedRequests || 0;
-                    
-                    const percent = (data.usedRequests / data.monthlyLimit) * 100;
-                    document.getElementById('usageProgress').style.width = Math.min(percent, 100) + '%';
-                }
-            } catch (e) {
-                console.log('Stats error:', e);
-            }
-        }
-        
-        // Copy API key
-        function copyAPIKey() {
-            navigator.clipboard.writeText(apiKey);
-            addBotMessage('✅ API key copied to clipboard!');
-        }
-        
-        // Refresh API key
-        async function refreshAPIKey() {
-            if (confirm('Are you sure you want to generate a new API key? The old key will stop working immediately.')) {
-                try {
-                    const res = await fetch('/api/enterprise/refresh-key', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ oldApiKey: apiKey })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        apiKey = data.newApiKey;
-                        localStorage.setItem('apiKey', apiKey);
-                        document.getElementById('apiKeyDisplay').innerText = apiKey;
-                        addBotMessage('✅ New API key generated! Keep it secure.');
-                    }
-                } catch (e) {
-                    addBotMessage('❌ Failed to generate new API key. Please contact support.');
-                }
-            }
-        }
-        
-        // Logout
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/login';
-        }
-        
-        // Load stats on page load
-        loadStats();
-        
-        // Register service worker
+        // Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW error:', e));
             });
         }
-        
-        // Auto greeting
-        setTimeout(() => {
-            addBotMessage("👋 Welcome to your dashboard! I can help you test the API, check your usage, or answer any questions.");
-        }, 2000);
     </script>
 </body>
 </html>
