@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZASS AI Enterprise | Dashboard</title>
+    <title>ZASS Enterprise - Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -13,155 +13,69 @@
             color: white;
             min-height: 100vh;
         }
-        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 20px; }
         
-        /* Navigation */
         nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; flex-wrap: wrap; gap: 20px; }
         .logo { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .nav-links { display: flex; gap: 30px; align-items: center; flex-wrap: wrap; }
         .nav-links a { color: white; text-decoration: none; transition: 0.3s; }
         .nav-links a:hover { color: #667eea; }
-        .btn-outline { border: 2px solid #667eea; background: transparent; padding: 10px 24px; border-radius: 50px; color: white; cursor: pointer; transition: 0.3s; }
-        .btn-outline:hover { background: rgba(102,126,234,0.1); transform: translateY(-2px); }
-        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 12px 28px; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102,126,234,0.4); }
+        .btn-outline { border: 2px solid #667eea; background: transparent; padding: 10px 24px; border-radius: 50px; color: white; cursor: pointer; }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 12px 28px; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; }
         
-        /* Stats Cards */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
-        .stat-card { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; text-align: center; transition: 0.3s; }
-        .stat-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.08); }
+        .stat-card { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; text-align: center; }
         .stat-number { font-size: 36px; font-weight: 800; color: #667eea; }
         .stat-label { font-size: 14px; color: #aaa; margin-top: 5px; }
         
-        /* API Key Section */
-        .api-section { background: linear-gradient(135deg, #1a1a2e, #0f0c29); border-radius: 20px; padding: 30px; margin: 20px 0; border: 1px solid rgba(102,126,234,0.3); }
+        .api-section { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin: 20px 0; }
         .api-key-box { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 12px; font-family: monospace; font-size: 18px; word-break: break-all; margin: 15px 0; }
         
-        /* Test Section */
         .test-section { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin: 20px 0; }
         .test-box { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 20px; }
-        .test-box input { flex: 1; padding: 15px 20px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; }
-        .test-box select { padding: 15px 20px; border-radius: 50px; background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .test-box input { flex: 1; padding: 15px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; }
+        .test-box select { padding: 15px; border-radius: 50px; background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.2); }
         .test-result { margin-top: 30px; min-height: 300px; background: rgba(0,0,0,0.3); border-radius: 20px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .test-result img { max-width: 100%; border-radius: 12px; }
-        .test-result iframe { width: 100%; height: 500px; border: none; border-radius: 12px; }
         
-        /* Usage Stats */
-        .usage-stats { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 25px; margin: 20px 0; }
-        .progress-bar { background: rgba(255,255,255,0.1); border-radius: 10px; height: 10px; margin: 10px 0; overflow: hidden; }
-        .progress-fill { background: linear-gradient(135deg, #667eea, #764ba2); height: 100%; border-radius: 10px; width: 0%; transition: width 0.5s; }
-        
-        /* AI Chat Bot */
-        .chat-bot {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            width: 380px;
-            background: rgba(26,26,46,0.98);
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            border: 1px solid #667eea;
-            z-index: 1000;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        }
-        .chat-header {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            padding: 15px 20px;
-            border-radius: 20px 20px 0 0;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .chat-status { font-size: 12px; opacity: 0.9; }
-        .chat-messages { height: 350px; overflow-y: auto; padding: 15px; display: block; }
-        .chat-message { margin-bottom: 15px; display: flex; align-items: flex-start; gap: 10px; }
-        .chat-message.user { justify-content: flex-end; }
-        .chat-message.user .message { background: rgba(102,126,234,0.3); padding: 10px 15px; border-radius: 18px; max-width: 80%; }
-        .chat-message.bot .message { background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 18px; max-width: 80%; }
-        .chat-input { display: flex; padding: 15px; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .chat-input input { flex: 1; padding: 10px 15px; border-radius: 25px; border: none; background: rgba(255,255,255,0.1); color: white; }
-        .chat-input button { background: #667eea; border: none; padding: 10px 20px; border-radius: 25px; color: white; cursor: pointer; }
-        .typing { display: flex; gap: 5px; padding: 10px; }
-        .typing span { width: 8px; height: 8px; background: #667eea; border-radius: 50%; animation: typing 1.4s infinite; }
-        .typing span:nth-child(2) { animation-delay: 0.2s; }
-        .typing span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typing { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-10px); } }
-        
-        .loader-small { width: 20px; height: 20px; border: 2px solid white; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 50px; font-size: 12px; font-weight: bold; }
+        .status-active { background: rgba(0,255,0,0.2); color: #00ff00; border: 1px solid #00ff00; }
+        .status-pending { background: rgba(255,165,0,0.2); color: #ffa500; border: 1px solid #ffa500; }
         
         footer { text-align: center; padding: 40px 0; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 40px; }
-        .contact-badge { position: fixed; bottom: 20px; right: 20px; background: #667eea; padding: 12px 20px; border-radius: 50px; font-size: 14px; z-index: 1000; }
-        .contact-badge a { color: white; text-decoration: none; }
-        
-        @media (max-width: 768px) { .chat-bot { width: 320px; left: 10px; right: 10px; bottom: 10px; } }
+        .loader-small { width: 20px; height: 20px; border: 2px solid white; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) { .test-box { flex-direction: column; } }
     </style>
 </head>
 <body>
-    <div class="contact-badge">📞 +25576323348 | 📧 <a href="mailto:citytechuk@gmail.com">citytechuk@gmail.com</a></div>
-    
-    <!-- AI Chat Bot -->
-    <div class="chat-bot" id="chatBot">
-        <div class="chat-header" onclick="toggleChat()">
-            <h3>🤖 ZASS AI Assistant</h3>
-            <span class="chat-status">● Online</span>
-        </div>
-        <div id="chatMessages" class="chat-messages">
-            <div class="chat-message bot">
-                <div class="message">👋 Hello! I'm ZASS AI Assistant. I can help you with API usage, payments, and technical support. Ask me anything!</div>
-            </div>
-        </div>
-        <div class="chat-input">
-            <input type="text" id="chatInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter') sendAIMessage()">
-            <button onclick="sendAIMessage()">Send</button>
-        </div>
-    </div>
-
     <div class="container">
         <nav>
-            <div class="logo">🤖 ZASS AI Enterprise</div>
+            <div class="logo">🏢 ZASS Enterprise</div>
             <div class="nav-links">
                 <a href="/">Home</a>
                 <a href="#test">API Test</a>
-                <a href="#stats">Stats</a>
                 <button class="btn-outline" onclick="logout()">Logout</button>
             </div>
         </nav>
         
         <h1>🏢 Enterprise Dashboard</h1>
-        <p style="color: #aaa; margin-bottom: 30px;">Welcome back, <span id="companyName">User</span></p>
+        <p style="color: #aaa; margin-bottom: 30px;">Welcome, <span id="companyName">User</span>! <span id="statusBadge" class="status-badge status-pending">Checking...</span></p>
         
         <!-- Stats Grid -->
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number" id="totalRequests">0</div>
-                <div class="stat-label">Total API Requests</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="todayRequests">0</div>
-                <div class="stat-label">Today's Requests</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="planName">Startup</div>
-                <div class="stat-label">Current Plan</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="status">Active</div>
-                <div class="stat-label">Account Status</div>
-            </div>
+            <div class="stat-card"><div class="stat-number" id="totalRequests">0</div><div class="stat-label">Total API Requests</div></div>
+            <div class="stat-card"><div class="stat-number" id="todayRequests">0</div><div class="stat-label">Today's Requests</div></div>
+            <div class="stat-card"><div class="stat-number" id="planName">Startup</div><div class="stat-label">Current Plan</div></div>
         </div>
         
         <!-- API Key Section -->
         <div class="api-section">
             <h3>🔑 Your API Key</h3>
             <div class="api-key-box" id="apiKeyDisplay">Loading...</div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn-primary" onclick="copyAPIKey()">📋 Copy API Key</button>
-                <button class="btn-outline" onclick="refreshAPIKey()">🔄 Generate New Key</button>
-            </div>
-            <p style="font-size: 12px; color: #888; margin-top: 15px;">Keep your API key secure. It provides full access to your account.</p>
+            <button class="btn-primary" onclick="copyAPIKey()">📋 Copy API Key</button>
+            <button class="btn-outline" onclick="checkPaymentStatus()" style="margin-left: 10px;">🔄 Check Status</button>
         </div>
         
         <!-- API Test Section -->
@@ -177,41 +91,21 @@
             </div>
             <div class="test-result" id="testResult">
                 <div class="loader-small"></div>
-                <p style="margin-left: 15px;">Enter a URL and click Capture</p>
-            </div>
-        </div>
-        
-        <!-- Usage Statistics -->
-        <div class="usage-stats" id="stats">
-            <h3>📊 Usage Statistics</h3>
-            <div style="margin: 15px 0;">
-                <p>Monthly Usage</p>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="usageProgress" style="width: 0%;"></div>
-                </div>
-                <p style="margin-top: 10px;"><span id="usedRequests">0</span> / <span id="monthlyLimit">5000</span> requests used</p>
-            </div>
-            <div style="margin: 15px 0;">
-                <p>Plan Features</p>
-                <ul style="margin-left: 20px; color: #ccc;" id="featuresList">
-                    <li>PNG & PDF output</li>
-                    <li>Email support</li>
-                </ul>
+                <p>Enter a URL and click Capture</p>
             </div>
         </div>
         
         <footer>
-            <p>© 2026 ZASS AI Enterprise. Built with ❤️ in Tanzania</p>
-            <p>📧 citytechuk@gmail.com | 📞 +25576323348 | 💰 NMB: 5161480052318274</p>
+            <p>© 2026 ZASS Enterprise. Built with ❤️ in Tanzania</p>
+            <p>📧 citytechuk@gmail.com | 📞 +25576323348</p>
         </footer>
     </div>
 
     <script>
-        let chatOpen = true;
         let apiKey = localStorage.getItem('apiKey');
         let company = localStorage.getItem('company');
+        let userEmail = localStorage.getItem('userEmail');
         
-        // Check authentication
         if (!apiKey) {
             window.location.href = '/login';
         }
@@ -219,195 +113,113 @@
         document.getElementById('companyName').innerText = company || 'User';
         document.getElementById('apiKeyDisplay').innerText = apiKey || 'Not found';
         
-        // Toggle chat
-        function toggleChat() {
-            const messagesDiv = document.getElementById('chatMessages');
-            const inputDiv = document.querySelector('.chat-input');
-            if (chatOpen) {
-                messagesDiv.style.display = 'none';
-                inputDiv.style.display = 'none';
-                chatOpen = false;
-            } else {
-                messagesDiv.style.display = 'block';
-                inputDiv.style.display = 'flex';
-                chatOpen = true;
+        // Check payment status
+        async function checkPaymentStatus() {
+            if (!userEmail) {
+                document.getElementById('statusBadge').innerHTML = '⚠️ No email';
+                return;
             }
-        }
-        
-        // Send AI message
-        async function sendAIMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            if (!message) return;
-            
-            addUserMessage(message);
-            input.value = '';
-            
-            showTyping();
             
             try {
-                const response = await fetch('/api/ai/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message, email: company || '' })
-                });
-                const data = await response.json();
-                removeTyping();
-                addBotMessage(data.response);
-            } catch (error) {
-                removeTyping();
-                addBotMessage("I'm having trouble connecting. Please try again.");
+                const res = await fetch('/api/payment/status/' + encodeURIComponent(userEmail));
+                const data = await res.json();
+                
+                if (data.status === 'active') {
+                    document.getElementById('statusBadge').innerHTML = '✅ Active';
+                    document.getElementById('statusBadge').className = 'status-badge status-active';
+                } else {
+                    document.getElementById('statusBadge').innerHTML = '⏳ Pending Payment';
+                    document.getElementById('statusBadge').className = 'status-badge status-pending';
+                }
+            } catch(e) {
+                document.getElementById('statusBadge').innerHTML = '⚠️ Unknown';
             }
         }
         
-        function addUserMessage(text) {
-            const messagesDiv = document.getElementById('chatMessages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'chat-message user';
-            msgDiv.innerHTML = '<div class="message">' + escapeHtml(text) + '</div>';
-            messagesDiv.appendChild(msgDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-        
-        function addBotMessage(text) {
-            const messagesDiv = document.getElementById('chatMessages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'chat-message bot';
-            msgDiv.innerHTML = '<div class="message">' + escapeHtml(text) + '</div>';
-            messagesDiv.appendChild(msgDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-        
-        function showTyping() {
-            const messagesDiv = document.getElementById('chatMessages');
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'chat-message bot';
-            typingDiv.id = 'typingIndicator';
-            typingDiv.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-            messagesDiv.appendChild(typingDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-        
-        function removeTyping() {
-            const typing = document.getElementById('typingIndicator');
-            if (typing) typing.remove();
-        }
-        
-        function escapeHtml(text) {
-            if (!text) return '';
-            return text.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-        
-        // Test API
+        // Test API function - FIXED
         async function testAPI() {
             const url = document.getElementById('testUrl').value;
             const format = document.getElementById('testFormat').value;
             const resultDiv = document.getElementById('testResult');
             
             if (!url) {
-                resultDiv.innerHTML = '<p style="color: #ff6b6b;">❌ Please enter a URL</p>';
+                resultDiv.innerHTML = '<p style="color:#ff6b6b;">❌ Enter URL</p>';
+                return;
+            }
+            
+            if (!apiKey) {
+                resultDiv.innerHTML = '<p style="color:#ff6b6b;">❌ No API key found. Please login again.</p>';
                 return;
             }
             
             resultDiv.innerHTML = '<div class="loader-small"></div><p>Capturing screenshot...</p>';
             
             try {
-                const res = await fetch('/api/enterprise/render?url=' + encodeURIComponent(url) + '&format=' + format, {
-                    headers: { 'x-api-key': apiKey }
+                console.log('Testing API with key:', apiKey.substring(0, 20) + '...');
+                
+                const response = await fetch('/api/enterprise/render?url=' + encodeURIComponent(url) + '&format=' + format, {
+                    method: 'GET',
+                    headers: {
+                        'x-api-key': apiKey
+                    }
                 });
                 
-                if (!res.ok) throw new Error('Error: ' + res.status);
+                console.log('Response status:', response.status);
+                
+                if (response.status === 401) {
+                    resultDiv.innerHTML = '<p style="color:#ff6b6b;">❌ Error 401: Invalid or inactive API key.<br><br>Please complete payment to activate your API key.<br><br>Contact: citytechuk@gmail.com</p>';
+                    return;
+                }
+                
+                if (!response.ok) throw new Error('HTTP ' + response.status);
                 
                 if (format === 'pdf') {
-                    const blob = await res.blob();
+                    const blob = await response.blob();
                     const pdfUrl = URL.createObjectURL(blob);
                     resultDiv.innerHTML = '<iframe src="' + pdfUrl + '" width="100%" height="500px"></iframe>';
                 } else {
-                    const blob = await res.blob();
+                    const blob = await response.blob();
                     const imgUrl = URL.createObjectURL(blob);
-                    resultDiv.innerHTML = '<img src="' + imgUrl + '" alt="Screenshot">';
+                    resultDiv.innerHTML = '<img src="' + imgUrl + '" style="max-width:100%; border-radius:12px;">';
                 }
                 
-                // Update stats after test
+                // Update stats after successful test
                 loadStats();
-            } catch (error) {
-                resultDiv.innerHTML = '<p style="color: #ff6b6b;">❌ ' + error.message + '</p>';
+            } catch(e) {
+                resultDiv.innerHTML = '<p style="color:#ff6b6b;">❌ Error: ' + e.message + '</p>';
             }
         }
         
-        // Load user statistics
         async function loadStats() {
             try {
-                const res = await fetch('/api/stats?api_key=' + apiKey);
+                const res = await fetch('/api/enterprise/stats?api_key=' + apiKey);
                 if (res.ok) {
                     const data = await res.json();
                     document.getElementById('totalRequests').innerText = data.totalRequests || 0;
                     document.getElementById('todayRequests').innerText = data.todayRequests || 0;
                     document.getElementById('planName').innerText = data.plan || 'Startup';
-                    document.getElementById('monthlyLimit').innerText = data.monthlyLimit || 5000;
-                    document.getElementById('usedRequests').innerText = data.usedRequests || 0;
-                    
-                    const percent = (data.usedRequests / data.monthlyLimit) * 100;
-                    document.getElementById('usageProgress').style.width = Math.min(percent, 100) + '%';
                 }
-            } catch (e) {
-                console.log('Stats error:', e);
-            }
+            } catch(e) {}
         }
         
-        // Copy API key
         function copyAPIKey() {
             navigator.clipboard.writeText(apiKey);
-            addBotMessage('✅ API key copied to clipboard!');
+            alert('✅ API Key copied!');
         }
         
-        // Refresh API key
-        async function refreshAPIKey() {
-            if (confirm('Are you sure you want to generate a new API key? The old key will stop working immediately.')) {
-                try {
-                    const res = await fetch('/api/enterprise/refresh-key', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ oldApiKey: apiKey })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        apiKey = data.newApiKey;
-                        localStorage.setItem('apiKey', apiKey);
-                        document.getElementById('apiKeyDisplay').innerText = apiKey;
-                        addBotMessage('✅ New API key generated! Keep it secure.');
-                    }
-                } catch (e) {
-                    addBotMessage('❌ Failed to generate new API key. Please contact support.');
-                }
-            }
-        }
-        
-        // Logout
         function logout() {
             localStorage.clear();
             window.location.href = '/login';
         }
         
-        // Load stats on page load
+        // Load initial data
+        checkPaymentStatus();
         loadStats();
         
-        // Register service worker
+        // Service Worker
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW error:', e));
-            });
+            navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW error:', e));
         }
-        
-        // Auto greeting
-        setTimeout(() => {
-            addBotMessage("👋 Welcome to your dashboard! I can help you test the API, check your usage, or answer any questions.");
-        }, 2000);
     </script>
 </body>
 </html>
