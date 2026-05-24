@@ -8,35 +8,34 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #0f0c29 50%, #1a1a2e 100%);
+            background: linear-gradient(135deg, #0a0a0a, #0f0c29, #1a1a2e);
             color: white;
             min-height: 100vh;
         }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .card { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin: 20px 0; }
-        .api-key { background: #1a1a2e; padding: 15px; border-radius: 12px; font-family: monospace; font-size: 18px; word-break: break-all; }
-        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 12px 28px; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; }
-        .btn-outline { border: 2px solid #667eea; background: transparent; padding: 10px 24px; border-radius: 50px; color: white; cursor: pointer; }
-        .test-box { display: flex; gap: 15px; flex-wrap: wrap; margin: 20px 0; }
-        .test-box input { flex: 1; padding: 15px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; }
-        .test-box select { padding: 15px; border-radius: 50px; background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.2); }
-        .test-result { margin-top: 30px; min-height: 300px; background: rgba(0,0,0,0.3); border-radius: 20px; display: flex; align-items: center; justify-content: center; }
-        .loader { width: 40px; height: 40px; border: 3px solid white; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
+        .card { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 25px; margin: 20px 0; }
+        .api-key { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; font-family: monospace; word-break: break-all; }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 10px 20px; border-radius: 50px; color: white; cursor: pointer; }
+        .btn-outline { border: 2px solid #667eea; background: transparent; padding: 10px 20px; border-radius: 50px; color: white; cursor: pointer; }
+        .test-box { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+        .test-box input { flex: 1; padding: 12px; border-radius: 50px; border: none; background: rgba(255,255,255,0.1); color: white; }
+        .test-box select { padding: 12px; border-radius: 50px; background: rgba(255,255,255,0.1); color: white; border: none; }
+        .test-result { margin-top: 20px; min-height: 300px; background: rgba(0,0,0,0.3); border-radius: 20px; display: flex; align-items: center; justify-content: center; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin: 20px 0; }
         .stat-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; text-align: center; }
         .stat-number { font-size: 32px; font-weight: bold; color: #667eea; }
         footer { text-align: center; padding: 30px 0; margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .loader { width: 40px; height: 40px; border: 3px solid white; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         img { max-width: 100%; border-radius: 10px; }
         iframe { width: 100%; height: 500px; border: none; border-radius: 10px; }
         .error { color: #ff6b6b; }
-        .success { color: #00ff00; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🏢 ZASS Enterprise Dashboard</h1>
-        <p>Welcome, <span id="companyName">User</span>! <span id="statusBadge" style="color: #00ff00;">✅ Active</span></p>
+        <h1>🏢 Enterprise Dashboard</h1>
+        <p>Welcome, <span id="companyName">User</span>! <span style="color: #00ff00;">✅ Active</span></p>
         
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-number" id="totalRequests">0</div><div>Total Requests</div></div>
@@ -74,12 +73,10 @@
     </div>
 
     <script>
-        let apiKey = localStorage.getItem('apiKey');
-        let company = localStorage.getItem('company');
+        const apiKey = localStorage.getItem('apiKey');
+        const company = localStorage.getItem('company');
         
-        if (!apiKey) {
-            window.location.href = '/login';
-        }
+        if (!apiKey) window.location.href = '/login';
         
         document.getElementById('companyName').innerText = company || 'User';
         document.getElementById('apiKeyDisplay').innerText = apiKey;
@@ -88,37 +85,20 @@
             const url = document.getElementById('testUrl').value;
             const format = document.getElementById('testFormat').value;
             const resultDiv = document.getElementById('testResult');
-            
-            if (!url) {
-                resultDiv.innerHTML = '<p class="error">❌ Enter URL</p>';
-                return;
-            }
-            
+            if (!url) { resultDiv.innerHTML = '<p class="error">❌ Enter URL</p>'; return; }
             resultDiv.innerHTML = '<div class="loader"></div><p>Capturing...</p>';
             
             try {
-                const response = await fetch('/api/enterprise/render?url=' + encodeURIComponent(url) + '&format=' + format, {
+                const res = await fetch('/api/enterprise/render?url=' + encodeURIComponent(url) + '&format=' + format, {
                     headers: { 'x-api-key': apiKey }
                 });
-                
-                if (response.status === 401) {
-                    resultDiv.innerHTML = '<p class="error">❌ Invalid API key. Contact support.</p>';
-                    return;
-                }
-                
-                if (response.status === 404) {
-                    resultDiv.innerHTML = '<p class="error">❌ API endpoint not found. Contact support.</p>';
-                    return;
-                }
-                
-                if (!response.ok) throw new Error('Error: ' + response.status);
-                
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 if (format === 'pdf') {
-                    const blob = await response.blob();
+                    const blob = await res.blob();
                     const pdfUrl = URL.createObjectURL(blob);
                     resultDiv.innerHTML = '<iframe src="' + pdfUrl + '"></iframe>';
                 } else {
-                    const blob = await response.blob();
+                    const blob = await res.blob();
                     const imgUrl = URL.createObjectURL(blob);
                     resultDiv.innerHTML = '<img src="' + imgUrl + '" alt="Screenshot">';
                 }
@@ -139,12 +119,12 @@
         
         async function loadStats() {
             try {
-                const res = await fetch('/api/enterprise/stats?api_key=' + apiKey);
+                const res = await fetch('/api/enterprise/stats', { headers: { 'x-api-key': apiKey } });
                 if (res.ok) {
                     const data = await res.json();
                     document.getElementById('totalRequests').innerText = data.totalRequests || 0;
                     document.getElementById('todayRequests').innerText = data.todayRequests || 0;
-                    document.getElementById('planName').innerText = data.plan || 'Startup';
+                    document.getElementById('planName').innerText = data.plan === 'startup' ? 'Startup' : data.plan === 'business' ? 'Business' : 'Enterprise';
                 }
             } catch(e) {}
         }
