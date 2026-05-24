@@ -3,167 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Cloud Browser</title>
+    <title>ZASS Enterprise - Register</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #0f0c29 50%, #1a1a2e 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
         }
-        .register-card {
-            background: rgba(255,255,255,0.1);
+        .card {
+            background: rgba(255,255,255,0.05);
             backdrop-filter: blur(10px);
-            border-radius: 20px;
             padding: 40px;
+            border-radius: 24px;
+            width: 500px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        h1 { font-size: 32px; margin-bottom: 10px; background: linear-gradient(135deg, #fff, #667eea); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        input, select {
             width: 100%;
-            max-width: 500px;
+            padding: 14px;
+            margin: 12px 0;
+            border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.2);
-        }
-        h1 {
-            font-size: 2em;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        .subtitle {
-            text-align: center;
-            color: #a0a0a0;
-            margin-bottom: 30px;
-        }
-        input {
-            width: 100%;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 2px solid rgba(255,255,255,0.2);
             background: rgba(0,0,0,0.3);
             color: white;
-            border-radius: 10px;
             font-size: 16px;
-        }
-        input:focus {
-            outline: none;
-            border-color: #667eea;
         }
         button {
             width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
+            border-radius: 12px;
+            color: white;
             font-weight: bold;
+            font-size: 16px;
             cursor: pointer;
-            transition: transform 0.3s ease;
+            margin-top: 10px;
         }
-        button:hover {
-            transform: translateY(-2px);
-        }
-        .error {
-            background: rgba(244,67,54,0.2);
-            color: #f44336;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .success {
-            background: rgba(76,175,80,0.2);
-            color: #4caf50;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .api-key-box {
-            background: rgba(0,0,0,0.5);
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            word-break: break-all;
-            font-family: monospace;
-            font-size: 12px;
-        }
-        .login-link {
-            text-align: center;
-            margin-top: 20px;
-            color: #a0a0a0;
-        }
-        .login-link a {
-            color: #667eea;
-            text-decoration: none;
-        }
+        a { color: #667eea; text-decoration: none; }
+        .error { color: #ff6b6b; text-align: center; margin-top: 15px; display: none; }
+        .success { color: #00ff00; text-align: center; margin-top: 15px; display: none; }
     </style>
 </head>
 <body>
-    <div class="register-card">
-        <h1>📝 Cloud Browser</h1>
-        <div class="subtitle">Create your free account</div>
+    <div class="card">
+        <h1>📝 Enterprise Registration</h1>
+        <p style="color: #aaa; margin-bottom: 20px;">Create your ZASS Enterprise account</p>
         
-        <div id="message"></div>
+        <form id="registerForm">
+            <input type="text" id="company" placeholder="Company Name" required>
+            <input type="email" id="email" placeholder="Email Address" required>
+            <input type="tel" id="phone" placeholder="Phone Number (optional)">
+            <input type="password" id="password" placeholder="Password (min 8 characters)" required>
+            <select id="plan">
+                <option value="startup">Startup - $49/month (5,000 requests)</option>
+                <option value="business">Business - $99/month (15,000 requests)</option>
+                <option value="enterprise">Enterprise - $299/month (unlimited)</option>
+            </select>
+            <button type="submit">Register →</button>
+        </form>
         
-        <input type="text" id="fullName" placeholder="Full Name (optional)">
-        <input type="email" id="email" placeholder="Email address">
-        <input type="password" id="password" placeholder="Password (min 6 characters)">
-        <button onclick="register()">Create Account</button>
+        <div id="errorMsg" class="error"></div>
+        <div id="successMsg" class="success"></div>
         
-        <div class="login-link">
-            Already have an account? <a href="/login.html">Login here</a>
-        </div>
+        <p style="margin-top: 20px; text-align: center;">Already have an account? <a href="/login">Login here</a></p>
+        <p style="margin-top: 15px; text-align: center;"><a href="/">← Back to Home</a></p>
     </div>
-    
+
     <script>
-        async function register() {
-            const fullName = document.getElementById('fullName').value;
+        document.getElementById('registerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const company = document.getElementById('company').value;
             const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
             const password = document.getElementById('password').value;
-            const messageDiv = document.getElementById('message');
+            const plan = document.getElementById('plan').value;
             
-            if (!email || !password) {
-                messageDiv.innerHTML = '<div class="error">❌ Email and password required</div>';
-                return;
-            }
+            const errorDiv = document.getElementById('errorMsg');
+            const successDiv = document.getElementById('successMsg');
             
-            if (password.length < 6) {
-                messageDiv.innerHTML = '<div class="error">❌ Password must be at least 6 characters</div>';
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            if (password.length < 8) {
+                errorDiv.style.display = 'block';
+                errorDiv.innerHTML = '❌ Password must be at least 8 characters';
                 return;
             }
             
             try {
-                const res = await fetch('/api/register', {
+                const response = await fetch('/api/enterprise/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password, full_name: fullName })
+                    body: JSON.stringify({ 
+                        company_name: company, 
+                        email: email, 
+                        phone: phone, 
+                        password: password, 
+                        plan: plan 
+                    })
                 });
                 
-                const data = await res.json();
+                const data = await response.json();
                 
                 if (data.success) {
-                    messageDiv.innerHTML = `
-                        <div class="success">✅ Account created successfully!</div>
-                        <div class="api-key-box">
-                            <strong>🔑 Your API Key:</strong><br>
-                            ${data.api_key}<br><br>
-                            <small>Save this key! You'll need it for API requests.</small>
-                        </div>
-                    `;
+                    successDiv.style.display = 'block';
+                    successDiv.innerHTML = `✅ Registration successful!<br>API Key: <code style="background:#000;padding:2px 5px;">${data.api_key}</code><br>Please complete payment to activate.`;
+                    
+                    // Save API key for later
+                    localStorage.setItem('pendingApiKey', data.api_key);
+                    
                     setTimeout(() => {
-                        window.location.href = '/login.html';
-                    }, 5000);
+                        window.location.href = '/payment';
+                    }, 3000);
                 } else {
-                    messageDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
+                    errorDiv.style.display = 'block';
+                    errorDiv.innerHTML = '❌ ' + (data.error || 'Registration failed');
                 }
             } catch (error) {
-                messageDiv.innerHTML = `<div class="error">❌ Registration failed: ${error.message}</div>`;
+                errorDiv.style.display = 'block';
+                errorDiv.innerHTML = '❌ Registration failed: ' + error.message;
             }
-        }
+        };
     </script>
 </body>
 </html>
