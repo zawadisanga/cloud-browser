@@ -4,82 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZASS Enterprise - Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #0a0a0a 0%, #0f0c29 50%, #1a1a2e 100%);
             color: white;
             min-height: 100vh;
         }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 20px; }
-        
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; flex-wrap: wrap; gap: 20px; }
-        .logo { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .nav-links { display: flex; gap: 30px; align-items: center; flex-wrap: wrap; }
-        .nav-links a { color: white; text-decoration: none; transition: 0.3s; }
-        .nav-links a:hover { color: #667eea; }
-        .btn-outline { border: 2px solid #667eea; background: transparent; padding: 10px 24px; border-radius: 50px; color: white; cursor: pointer; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .card { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin: 20px 0; }
+        .api-key { background: #1a1a2e; padding: 15px; border-radius: 12px; font-family: monospace; font-size: 18px; word-break: break-all; }
         .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 12px 28px; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; }
-        
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
-        .stat-card { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; text-align: center; }
-        .stat-number { font-size: 36px; font-weight: 800; color: #667eea; }
-        .stat-label { font-size: 14px; color: #aaa; margin-top: 5px; }
-        
-        .api-section { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin: 20px 0; }
-        .api-key-box { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 12px; font-family: monospace; font-size: 18px; word-break: break-all; margin: 15px 0; }
-        
-        .test-section { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin: 20px 0; }
-        .test-box { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 20px; }
+        .btn-outline { border: 2px solid #667eea; background: transparent; padding: 10px 24px; border-radius: 50px; color: white; cursor: pointer; }
+        .test-box { display: flex; gap: 15px; flex-wrap: wrap; margin: 20px 0; }
         .test-box input { flex: 1; padding: 15px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; }
         .test-box select { padding: 15px; border-radius: 50px; background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.2); }
-        .test-result { margin-top: 30px; min-height: 300px; background: rgba(0,0,0,0.3); border-radius: 20px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .test-result img { max-width: 100%; border-radius: 12px; }
-        
-        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 50px; font-size: 12px; font-weight: bold; }
-        .status-active { background: rgba(0,255,0,0.2); color: #00ff00; border: 1px solid #00ff00; }
-        .status-pending { background: rgba(255,165,0,0.2); color: #ffa500; border: 1px solid #ffa500; }
-        
-        footer { text-align: center; padding: 40px 0; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 40px; }
-        .loader-small { width: 20px; height: 20px; border: 2px solid white; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
+        .test-result { margin-top: 30px; min-height: 300px; background: rgba(0,0,0,0.3); border-radius: 20px; display: flex; align-items: center; justify-content: center; }
+        .loader { width: 40px; height: 40px; border: 3px solid white; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 768px) { .test-box { flex-direction: column; } }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
+        .stat-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; text-align: center; }
+        .stat-number { font-size: 32px; font-weight: bold; color: #667eea; }
+        footer { text-align: center; padding: 30px 0; margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); }
+        img { max-width: 100%; border-radius: 10px; }
+        iframe { width: 100%; height: 500px; border: none; border-radius: 10px; }
+        .error { color: #ff6b6b; }
+        .success { color: #00ff00; }
     </style>
 </head>
 <body>
     <div class="container">
-        <nav>
-            <div class="logo">🏢 ZASS Enterprise</div>
-            <div class="nav-links">
-                <a href="/">Home</a>
-                <a href="#test">API Test</a>
-                <button class="btn-outline" onclick="logout()">Logout</button>
-            </div>
-        </nav>
+        <h1>🏢 ZASS Enterprise Dashboard</h1>
+        <p>Welcome, <span id="companyName">User</span>! <span id="statusBadge" style="color: #00ff00;">✅ Active</span></p>
         
-        <h1>🏢 Enterprise Dashboard</h1>
-        <p style="color: #aaa; margin-bottom: 30px;">Welcome, <span id="companyName">User</span>! <span id="statusBadge" class="status-badge status-pending">Checking...</span></p>
-        
-        <!-- Stats Grid -->
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-number" id="totalRequests">0</div><div class="stat-label">Total API Requests</div></div>
-            <div class="stat-card"><div class="stat-number" id="todayRequests">0</div><div class="stat-label">Today's Requests</div></div>
-            <div class="stat-card"><div class="stat-number" id="planName">Startup</div><div class="stat-label">Current Plan</div></div>
+            <div class="stat-card"><div class="stat-number" id="totalRequests">0</div><div>Total Requests</div></div>
+            <div class="stat-card"><div class="stat-number" id="todayRequests">0</div><div>Today's Requests</div></div>
+            <div class="stat-card"><div class="stat-number" id="planName">Startup</div><div>Current Plan</div></div>
         </div>
         
-        <!-- API Key Section -->
-        <div class="api-section">
+        <div class="card">
             <h3>🔑 Your API Key</h3>
-            <div class="api-key-box" id="apiKeyDisplay">Loading...</div>
-            <button class="btn-primary" onclick="copyAPIKey()">📋 Copy API Key</button>
-            <button class="btn-outline" onclick="checkPaymentStatus()" style="margin-left: 10px;">🔄 Check Status</button>
+            <div class="api-key" id="apiKeyDisplay">Loading...</div>
+            <button class="btn-primary" onclick="copyAPIKey()" style="margin-top: 15px;">📋 Copy API Key</button>
+            <button class="btn-outline" onclick="logout()" style="margin-left: 10px;">🚪 Logout</button>
         </div>
         
-        <!-- API Test Section -->
-        <div class="test-section" id="test">
+        <div class="card">
             <h3>🎯 Test Your API</h3>
             <div class="test-box">
                 <input type="text" id="testUrl" placeholder="https://example.com" value="https://example.com">
@@ -90,104 +62,79 @@
                 <button class="btn-primary" onclick="testAPI()">🚀 Capture Now</button>
             </div>
             <div class="test-result" id="testResult">
-                <div class="loader-small"></div>
+                <div class="loader"></div>
                 <p>Enter a URL and click Capture</p>
             </div>
         </div>
         
         <footer>
-            <p>© 2026 ZASS Enterprise. Built with ❤️ in Tanzania</p>
-            <p>📧 citytechuk@gmail.com | 📞 +25576323348</p>
+            <p>© 2026 ZASS Enterprise | 📧 citytechuk@gmail.com | 📞 +25576323348</p>
+            <p>💰 NMB Account: 5161480052318274</p>
         </footer>
     </div>
 
     <script>
         let apiKey = localStorage.getItem('apiKey');
         let company = localStorage.getItem('company');
-        let userEmail = localStorage.getItem('userEmail');
         
         if (!apiKey) {
             window.location.href = '/login';
         }
         
         document.getElementById('companyName').innerText = company || 'User';
-        document.getElementById('apiKeyDisplay').innerText = apiKey || 'Not found';
+        document.getElementById('apiKeyDisplay').innerText = apiKey;
         
-        // Check payment status
-        async function checkPaymentStatus() {
-            if (!userEmail) {
-                document.getElementById('statusBadge').innerHTML = '⚠️ No email';
-                return;
-            }
-            
-            try {
-                const res = await fetch('/api/payment/status/' + encodeURIComponent(userEmail));
-                const data = await res.json();
-                
-                if (data.status === 'active') {
-                    document.getElementById('statusBadge').innerHTML = '✅ Active';
-                    document.getElementById('statusBadge').className = 'status-badge status-active';
-                } else {
-                    document.getElementById('statusBadge').innerHTML = '⏳ Pending Payment';
-                    document.getElementById('statusBadge').className = 'status-badge status-pending';
-                }
-            } catch(e) {
-                document.getElementById('statusBadge').innerHTML = '⚠️ Unknown';
-            }
-        }
-        
-        // Test API function - FIXED
         async function testAPI() {
             const url = document.getElementById('testUrl').value;
             const format = document.getElementById('testFormat').value;
             const resultDiv = document.getElementById('testResult');
             
             if (!url) {
-                resultDiv.innerHTML = '<p style="color:#ff6b6b;">❌ Enter URL</p>';
+                resultDiv.innerHTML = '<p class="error">❌ Enter URL</p>';
                 return;
             }
             
-            if (!apiKey) {
-                resultDiv.innerHTML = '<p style="color:#ff6b6b;">❌ No API key found. Please login again.</p>';
-                return;
-            }
-            
-            resultDiv.innerHTML = '<div class="loader-small"></div><p>Capturing screenshot...</p>';
+            resultDiv.innerHTML = '<div class="loader"></div><p>Capturing...</p>';
             
             try {
-                console.log('Testing API with key:', apiKey.substring(0, 20) + '...');
-                
                 const response = await fetch('/api/enterprise/render?url=' + encodeURIComponent(url) + '&format=' + format, {
-                    method: 'GET',
-                    headers: {
-                        'x-api-key': apiKey
-                    }
+                    headers: { 'x-api-key': apiKey }
                 });
                 
-                console.log('Response status:', response.status);
-                
                 if (response.status === 401) {
-                    resultDiv.innerHTML = '<p style="color:#ff6b6b;">❌ Error 401: Invalid or inactive API key.<br><br>Please complete payment to activate your API key.<br><br>Contact: citytechuk@gmail.com</p>';
+                    resultDiv.innerHTML = '<p class="error">❌ Invalid API key. Contact support.</p>';
                     return;
                 }
                 
-                if (!response.ok) throw new Error('HTTP ' + response.status);
+                if (response.status === 404) {
+                    resultDiv.innerHTML = '<p class="error">❌ API endpoint not found. Contact support.</p>';
+                    return;
+                }
+                
+                if (!response.ok) throw new Error('Error: ' + response.status);
                 
                 if (format === 'pdf') {
                     const blob = await response.blob();
                     const pdfUrl = URL.createObjectURL(blob);
-                    resultDiv.innerHTML = '<iframe src="' + pdfUrl + '" width="100%" height="500px"></iframe>';
+                    resultDiv.innerHTML = '<iframe src="' + pdfUrl + '"></iframe>';
                 } else {
                     const blob = await response.blob();
                     const imgUrl = URL.createObjectURL(blob);
-                    resultDiv.innerHTML = '<img src="' + imgUrl + '" style="max-width:100%; border-radius:12px;">';
+                    resultDiv.innerHTML = '<img src="' + imgUrl + '" alt="Screenshot">';
                 }
-                
-                // Update stats after successful test
-                loadStats();
             } catch(e) {
-                resultDiv.innerHTML = '<p style="color:#ff6b6b;">❌ Error: ' + e.message + '</p>';
+                resultDiv.innerHTML = '<p class="error">❌ ' + e.message + '</p>';
             }
+        }
+        
+        function copyAPIKey() {
+            navigator.clipboard.writeText(apiKey);
+            alert('✅ API Key copied!');
+        }
+        
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login';
         }
         
         async function loadStats() {
@@ -202,24 +149,7 @@
             } catch(e) {}
         }
         
-        function copyAPIKey() {
-            navigator.clipboard.writeText(apiKey);
-            alert('✅ API Key copied!');
-        }
-        
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/login';
-        }
-        
-        // Load initial data
-        checkPaymentStatus();
         loadStats();
-        
-        // Service Worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW error:', e));
-        }
     </script>
 </body>
 </html>
